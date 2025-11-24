@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CONFIG } from '../config';
+import { APP_CONFIG } from '../config/constants';
 
 // 負責處理所有與 Ignition 的通訊、數據模擬、狀態管理
 export const useIgnitionSystem = () => {

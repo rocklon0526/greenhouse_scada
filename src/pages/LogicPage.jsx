@@ -1,5 +1,5 @@
 import React from 'react';
-import Card from '../components/Card';
+import Card from '../components/ui/Card';
 
 const LogicPage = ({ sys }) => {
   const { data, setData } = sys;
