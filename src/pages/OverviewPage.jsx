@@ -1,243 +1,156 @@
-import React, { useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { 
-  OrthographicCamera, OrbitControls, Grid, 
-  Environment, ContactShadows, Text
-} from '@react-three/drei';
-import { Wind, Droplets, Thermometer, Activity } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrthographicCamera, OrbitControls, Grid, Environment, ContactShadows, Stars } from '@react-three/drei';
+import { XCircle, CloudSun, Thermometer, Droplets } from 'lucide-react'; 
 import * as THREE from 'three';
-import Card from '../components/Card';
+import { WAREHOUSE_LAYOUT } from '../config/layoutConfig';
+import { useAppStore } from '../store/useAppStore';
+import VerticalRack from '../components/3d/VerticalRack';
+import SensorGroup from '../components/3d/SensorGroup';
+import { Infrastructure, DuctSystem } from '../components/3d/Infrastructure';
+import Fan3D from '../components/3d/Fan3D'; // 補上 Fan3D 引用
+import { CloudFog } from 'lucide-react'; // 記得 import CloudFog
 
-// ============================================================================
-// 3D 物件與場景定義
-// ============================================================================
+const SensorDetailPanel = () => {
+  const { selectedSensorId, sensors, clearSelection } = useAppStore();
+  const sensorGroup = sensors.find(s => s.id === selectedSensorId);
 
-// 1. 3D 感測器點 (會發光的立方體)
-const Sensor3D = ({ position, val, maxLimit, id }) => {
-  const isAlarm = val > maxLimit;
-  const color = isAlarm ? "#ef4444" : "#22c55e"; // 紅/綠
+  if (!sensorGroup) return null;
 
-  return (
-    <group position={position}>
-      {/* 發光本體 */}
-      <mesh>
-        <boxGeometry args={[0.4, 0.4, 0.4]} />
-        <meshStandardMaterial 
-          color={color} 
-          emissive={color} // 自發光
-          emissiveIntensity={isAlarm ? 2 : 0.5} // 警報時更亮
-          toneMapped={false}
-        />
-      </mesh>
-      {/* 上方數值標籤 */}
-      <Text
-        position={[0, 0.6, 0]}
-        fontSize={0.3}
-        color="white"
-        anchorX="center"
-        anchorY="middle"
-        billboard // 永遠面向攝影機
-      >
-        {val.toFixed(1)}°
-      </Text>
-    </group>
-  );
-};
-
-// 2. 3D 種植架 (代表一排)
-const Rack3D = ({ position, rowId, sensors, maxLimit }) => {
-  return (
-    <group position={position}>
-      {/* 架子結構 (半透明長方體) */}
-      <mesh position={[0, 1, 0]}>
-        <boxGeometry args={[10, 2, 1]} />
-        <meshPhysicalMaterial 
-          color="#1e293b" 
-          transparent 
-          opacity={0.8} 
-          metalness={0.8} 
-          roughness={0.2}
-          clearcoat={1}
-        />
-      </mesh>
-      {/* 架子編號 */}
-      <Text position={[-5.5, 0.2, 0]} fontSize={0.5} color="#94a3b8" rotation={[-Math.PI/2, 0, Math.PI/2]}>
-        ROW {rowId}
-      </Text>
-      {/* 放置在架子上的感測器 */}
-      {sensors.map((s, i) => (
-        <Sensor3D 
-          key={s.id} 
-          id={s.id}
-          val={s.temp}
-          maxLimit={maxLimit}
-          // 在架子上平均分佈
-          position={[-4 + i * 2, 2.2, 0]} 
-        />
-      ))}
-    </group>
-  );
-};
-
-// 3. 3D 風扇 (會旋轉)
-const Fan3D = ({ position, isRunning }) => {
-  const bladeRef = useRef();
-  // 動畫迴圈：如果運轉中，就旋轉葉片
-  useFrame((state, delta) => {
-    if (isRunning && bladeRef.current) {
-      bladeRef.current.rotation.z += delta * 5; // 調整轉速
-    }
-  });
+  const levels = ['Top', 'Mid', 'Bot'];
+  const levelData = [sensorGroup.details.top, sensorGroup.details.mid, sensorGroup.details.bot];
 
   return (
-    <group position={position}>
-      {/* 風扇外框 */}
-      <mesh rotation={[0, Math.PI/2, 0]}>
-        <cylinderGeometry args={[1, 1, 0.5, 32]} />
-        <meshStandardMaterial color="#334155" metalness={0.8} />
-      </mesh>
-      {/* 風扇葉片 (用一個簡單的十字代替) */}
-      <group ref={bladeRef} rotation={[0, Math.PI/2, 0]}>
-        <mesh>
-          <boxGeometry args={[0.2, 1.8, 0.1]} />
-          <meshStandardMaterial color={isRunning ? "#3b82f6" : "#64748b"} emissive={isRunning ? "#3b82f6" : "black"} />
-        </mesh>
-        <mesh rotation={[0, 0, Math.PI/2]}>
-          <boxGeometry args={[0.2, 1.8, 0.1]} />
-          <meshStandardMaterial color={isRunning ? "#3b82f6" : "#64748b"} emissive={isRunning ? "#3b82f6" : "black"} />
-        </mesh>
-      </group>
-    </group>
-  );
-};
-
-// ============================================================================
-// 主頁面組件 (3D Overview)
-// ============================================================================
-const OverviewPage = ({ sys }) => {
-  const { data } = sys;
-  const rows = 8;
-
-  // 將感測器數據按「排 (Row)」分組
-  const sensorsByRow = Array.from({ length: rows }, (_, i) => 
-    data.sensors.filter(s => s.row === i + 1)
-  );
-
-  return (
-    <div className="h-full flex flex-col gap-4 overflow-hidden">
-      {/* KPI 頂部欄 (維持 2D UI 浮動於上方) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0 z-10">
-        <Card className="flex-row items-center justify-between">
-          <div>
-            <div className="text-slate-400 text-xs">Avg Temp</div>
-            <div className="text-2xl font-bold text-white">26.4°C</div>
-          </div>
-          <Thermometer className="text-orange-500" />
-        </Card>
-        <Card className="flex-row items-center justify-between">
-          <div>
-            <div className="text-slate-400 text-xs">Avg Humidity</div>
-            <div className="text-2xl font-bold text-white">65%</div>
-          </div>
-          <Droplets className="text-blue-500" />
-        </Card>
-        <Card className={`flex-row items-center justify-between transition-colors ${data.devices.fans ? 'bg-green-900/20 border-green-500/50' : ''}`}>
-          <div>
-            <div className="text-slate-400 text-xs">Exhaust Fans</div>
-            <div className={`text-lg font-bold ${data.devices.fans ? 'text-green-400' : 'text-slate-500'}`}>
-              {data.devices.fans ? 'RUNNING' : 'STOPPED'}
-            </div>
-          </div>
-          <Wind className={data.devices.fans ? 'text-green-400 animate-spin' : 'text-slate-600'} />
-        </Card>
-        <Card className={`flex-row items-center justify-between transition-colors ${data.devices.waterWall ? 'bg-blue-900/20 border-blue-500/50' : ''}`}>
-          <div>
-            <div className="text-slate-400 text-xs">Water Wall</div>
-            <div className={`text-lg font-bold ${data.devices.waterWall ? 'text-blue-400' : 'text-slate-500'}`}>
-              {data.devices.waterWall ? 'ACTIVE' : 'OFF'}
-            </div>
-          </div>
-          <Activity className={data.devices.waterWall ? 'text-blue-400' : 'text-slate-600'} />
-        </Card>
+    <div className="absolute top-24 right-6 w-80 bg-slate-900/95 backdrop-blur-xl border border-orange-500/30 rounded-2xl p-5 shadow-2xl z-20 animate-in slide-in-from-right-10 fade-in duration-300">
+      <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-700">
+        <div>
+          <h3 className="text-orange-400 font-bold text-lg">{sensorGroup.id}</h3>
+          <p className="text-slate-400 text-xs">Vertical Profile Analysis</p>
+        </div>
+        <button onClick={clearSelection} className="text-slate-400 hover:text-white transition-colors">
+          <XCircle size={24} />
+        </button>
       </div>
 
-      {/* 3D 場景容器 */}
-      <Card title="3D Digital Twin View" className="flex-1 relative overflow-hidden p-0 bg-slate-950 border-none">
-        
-        {/* R3F Canvas: 3D 世界的入口 */}
-        <Canvas shadows className="w-full h-full" gl={{ antialias: true, toneMapping: THREE.ReinhardToneMapping }}>
-          {/* 1. 攝影機與控制 */}
-          <OrthographicCamera makeDefault position={[20, 20, 20]} zoom={25} />
-          <OrbitControls 
-            enableRotate={true} enableZoom={true} enablePan={true}
-            minPolarAngle={Math.PI / 4} maxPolarAngle={Math.PI / 2.2}
-          />
-
-          {/* 2. 燈光與環境 */}
-          <color attach="background" args={['#0f172a']} />
-          <ambientLight intensity={0.4} />
-          <directionalLight position={[10, 20, 10]} intensity={2} castShadow color="#ffffff" />
-          <pointLight position={[-10, 5, -10]} intensity={2} color="#3b82f6" distance={30} />
-          <Environment preset="city" />
-
-          {/* 3. 場景物件 */}
-          <group position={[-5, -2, -5]}>
+      <div className="space-y-3">
+        {levels.map((label, idx) => (
+          <div key={label} className="bg-slate-800/50 rounded-lg p-3 border border-slate-700 flex items-center justify-between gap-3">
+            <div className="flex flex-col justify-center w-8 border-r border-slate-600 mr-1">
+                <span className="text-xs font-bold text-slate-500 uppercase">{label}</span>
+            </div>
             
-            {/* 地板網格 */}
-            <Grid 
-              position={[0, 0.01, 0]} args={[40, 40]} 
-              cellColor="#334155" sectionColor="#475569" 
-              fadeDistance={30} infiniteGrid
-            />
-            
-            {/* 水冷牆 */}
-            <mesh position={[0, 2, -8]}>
-              <boxGeometry args={[20, 4, 0.5]} />
-              <meshStandardMaterial 
-                color={data.devices.waterWall ? "#3b82f6" : "#1e293b"}
-                emissive={data.devices.waterWall ? "#3b82f6" : "#000000"}
-                emissiveIntensity={data.devices.waterWall ? 1 : 0}
-                metalness={0.8} roughness={0.2}
-              />
-              <Text position={[0, 2.5, 0]} fontSize={0.8} color="#3b82f6" anchorY="bottom">
-                WATER WALL
-              </Text>
-            </mesh>
+            {/* 溫度 */}
+            <div className="flex-1">
+                <div className="text-[9px] text-slate-400 uppercase">Temp</div>
+                <div className={`font-mono font-bold text-sm ${levelData[idx].temp > 28 ? 'text-red-400' : 'text-white'}`}>
+                    {levelData[idx].temp}°
+                </div>
+            </div>
 
-            {/* 種植架與感測器 */}
-            {sensorsByRow.map((rowSensors, i) => (
-              <Rack3D 
-                key={i} 
-                rowId={i + 1}
-                sensors={rowSensors}
-                maxLimit={data.settings.tempThreshold}
-                position={[0, 0, i * 2.5]} 
-              />
-            ))}
+            {/* 濕度 */}
+            <div className="flex-1">
+                <div className="text-[9px] text-slate-400 uppercase">Hum</div>
+                <div className="font-mono font-bold text-sm text-blue-300">
+                    {levelData[idx].hum}%
+                </div>
+            </div>
 
-            {/* 負壓風扇牆 */}
-            <group position={[0, 2, 18]}>
-              <Text position={[0, 1.5, 0]} fontSize={0.8} color="#64748b" anchorY="bottom" rotation={[0, Math.PI, 0]}>
-                EXHAUST FANS
-              </Text>
-              {[-4, -2, 0, 2, 4].map((x, i) => (
-                <Fan3D key={i} position={[x * 1.5, 0, 0]} isRunning={data.devices.fans} />
-              ))}
-            </group>
+            {/* [新增] CO2 */}
+            <div className="flex-1">
+                <div className="text-[9px] text-slate-400 uppercase">CO2</div>
+                <div className="font-mono font-bold text-sm text-gray-300">
+                    {levelData[idx].co2}
+                </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
-            {/* 模擬養液桶預留位置 (示意) */}
-            <group position={[12, 0, 0]}>
-              <mesh position={[0, 1.5, 0]}>
-                <cylinderGeometry args={[1.5, 1.5, 3, 32]} />
-                <meshPhysicalMaterial color="#cbd5e1" transparent opacity={0.3} metalness={0.9} roughness={0.1} />
-              </mesh>
-              <Text position={[0, 3.5, 0]} fontSize={0.5} color="#94a3b8" billboard>Nutrient Tank (Future)</Text>
-            </group>
+// 左側氣象站面板
+const WeatherPanel = () => {
+    const { weatherStation } = useAppStore();
+    return (
+        <div className="absolute top-24 left-6 w-56 bg-slate-900/80 backdrop-blur-md border border-purple-500/30 rounded-2xl p-4 shadow-xl pointer-events-none z-10">
+            <div className="flex items-center gap-2 mb-3 text-purple-400">
+                <CloudSun size={20} />
+                <span className="font-bold text-sm uppercase">Outdoor Weather</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <div className="text-xs text-slate-400">Temp</div>
+                    <div className="text-xl font-mono font-bold text-white">{weatherStation.temp}°</div>
+                </div>
+                <div>
+                    <div className="text-xs text-slate-400">Humidity</div>
+                    <div className="text-xl font-mono font-bold text-blue-300">{weatherStation.hum}%</div>
+                </div>
+                <div className="col-span-2 pt-2 border-t border-slate-700">
+                    <div className="flex justify-between text-xs">
+                        <span className="text-slate-400">UV Index</span>
+                        <span className="text-yellow-400 font-bold">{weatherStation.uv}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
 
+// 主頁面
+const OverviewPage = () => {
+  const { initSystem, sensors, devices, clearSelection } = useAppStore();
+
+  useEffect(() => {
+    const cleanup = initSystem(WAREHOUSE_LAYOUT);
+    return cleanup;
+  }, [initSystem]);
+
+  return (
+    <div className="w-full h-full relative bg-slate-950">
+      <WeatherPanel />
+      <SensorDetailPanel />
+      {/* ControlBar 移除了，解決擋住問題 */}
+      
+      <Canvas 
+        shadows 
+        dpr={[1, 2]}
+        gl={{ antialias: true, toneMapping: THREE.ReinhardToneMapping, toneMappingExposure: 1.5 }}
+        onPointerMissed={(e) => e.type === 'click' && clearSelection()}
+      >
+        <OrthographicCamera makeDefault position={[60, 60, 60]} zoom={12} near={-200} far={1000} />
+        <OrbitControls enableRotate={false} enableZoom={true} enablePan={true} minZoom={5} maxZoom={40} />
+
+        <ambientLight intensity={0.8} color="#ffffff" />
+        <directionalLight position={[30, 60, 30]} intensity={1.5} castShadow shadow-mapSize={[4096, 4096]} />
+        <Stars radius={200} depth={50} count={2000} factor={4} saturation={0} fade />
+        <Environment preset="city" />
+
+        <group position={[0, -5, 0]}>
+          <Grid position={[0, 0.01, 0]} args={[120, 120]} cellColor="#334155" sectionColor="#64748b" fadeDistance={150} infiniteGrid />
+          
+          {WAREHOUSE_LAYOUT.racks.map((rack) => (
+            <VerticalRack key={rack.id} data={rack} />
+          ))}
+
+          {sensors.map((group) => (
+            <SensorGroup key={group.id} data={group} />
+          ))}
+
+          <Infrastructure config={WAREHOUSE_LAYOUT.infrastructure} activeDevices={devices} />
+          <DuctSystem ducts={WAREHOUSE_LAYOUT.ducts} />
+
+          {/* 3D 風扇 */}
+          <group position={[0, 5, 28]}>
+             {[-20, -10, 0, 10, 20].map((x, i) => (
+                <Fan3D key={i} position={[x, 0, 0]} isRunning={devices.fans} />
+             ))}
           </group>
 
-        </Canvas>
-      </Card>
+          <ContactShadows resolution={1024} scale={150} blur={2} opacity={0.4} far={10} color="#000000" />
+        </group>
+      </Canvas>
     </div>
   );
 };

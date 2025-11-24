@@ -1,108 +1,104 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Wind, Droplets, Thermometer, Activity, Settings, 
-  LayoutDashboard, Split, Save, Power, RefreshCw, AlertTriangle, Menu, X
-} from 'lucide-react';
-import { useIgnitionSystem } from './hooks/useIgnitionSystem';
+import React, { useState } from 'react';
+import { LayoutDashboard, Split, Leaf, Activity } from 'lucide-react'; // 新增 Activity icon
 import OverviewPage from './pages/OverviewPage';
 import LogicPage from './pages/LogicPage';
+import DashboardPage from './pages/DashboardPage'; // 引入 Dashboard
+import { useAppStore } from './store/useAppStore';
 
-
-// ============================================================================
-// 主應用框架 (MAIN APP SHELL)
-// ============================================================================
 const GreenhouseClient = () => {
-  const [activePage, setActivePage] = useState('overview'); // overview, logic
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const sys = useIgnitionSystem(); // 引用我們的資料層
-
-  // Navigation Items
-  const navItems = [
-    { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'logic', label: 'Logic Builder', icon: Split },
-  ];
+  const [activePage, setActivePage] = useState('overview');
+  const connectionStatus = useAppStore(state => state.connectionStatus);
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
+    <div className="relative w-full h-screen bg-slate-950 overflow-hidden font-sans text-slate-100 selection:bg-green-500/30">
       
-      {/* Sidebar (Desktop) */}
-      <aside className="hidden md:flex flex-col w-64 bg-slate-900 border-r border-slate-800">
-        <div className="p-6 border-b border-slate-800 flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
-            <span className="font-bold text-white">G</span>
-          </div>
-          <div>
-            <h1 className="font-bold text-white tracking-tight">Greenhouse OS</h1>
-            <p className="text-[10px] text-slate-500">Headless SCADA v1.0</p>
-          </div>
-        </div>
-        
-        <nav className="flex-1 p-4 space-y-1">
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => setActivePage(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all
-                ${activePage === item.id 
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' 
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-            >
-              <item.icon size={18} />
-              {item.label}
-            </button>
-          ))}
-        </nav>
+      {/* 背景層：3D 場景永遠渲染，保持狀態 */}
+      <div className={`absolute inset-0 z-0 transition-opacity duration-500 ${activePage === 'overview' ? 'opacity-100' : 'opacity-20 blur-sm'}`}>
+        <OverviewPage />
+      </div>
 
-        <div className="p-4 border-t border-slate-800">
-           <div className="bg-slate-800/50 rounded p-3 flex items-center gap-3">
-              <div className={`w-2 h-2 rounded-full ${sys.status === 'connected' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-              <div className="flex-1">
-                 <div className="text-[10px] text-slate-400 uppercase font-bold">System Status</div>
-                 <div className="text-xs text-white">{sys.status === 'connected' ? 'Online' : 'Offline'}</div>
+      {/* 前景層：UI */}
+      <div className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-6">
+        
+        {/* Header */}
+        <header className="flex justify-between items-start pointer-events-auto">
+          <div className="flex items-center gap-4 bg-slate-900/60 backdrop-blur-md border border-white/10 p-3 rounded-2xl shadow-2xl">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
+              <Leaf size={20} className="text-white" />
+            </div>
+            <div>
+              <h1 className="font-bold text-lg tracking-wide text-white">Greenhouse OS</h1>
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`}></span>
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider">
+                  {connectionStatus === 'connected' ? 'System Online' : 'Offline'}
+                </p>
               </div>
-           </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden relative">
-        
-        {/* Mobile Header */}
-        <header className="md:hidden h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 shrink-0">
-          <span className="font-bold">Greenhouse OS</span>
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-400">
-            {isMobileMenuOpen ? <X /> : <Menu />}
-          </button>
+            </div>
+          </div>
         </header>
-        
-        {/* Mobile Menu Overlay */}
-        {isMobileMenuOpen && (
-          <div className="absolute inset-0 z-50 bg-slate-900/95 p-4 md:hidden">
-            <nav className="space-y-2 mt-10">
-               {navItems.map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => { setActivePage(item.id); setIsMobileMenuOpen(false); }}
-                  className={`w-full flex items-center gap-3 px-4 py-4 rounded-lg text-lg font-medium
-                    ${activePage === item.id ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
-                >
-                  <item.icon size={24} />
-                  {item.label}
-                </button>
-              ))}
-            </nav>
+
+        {/* Content Area (Dashboard / Logic) */}
+        {(activePage === 'dashboard' || activePage === 'logic') && (
+          <div className="flex-1 min-h-0 py-6 pointer-events-auto animate-in fade-in zoom-in-95 duration-300">
+             <div className="h-full container mx-auto max-w-5xl">
+                {activePage === 'dashboard' && <DashboardPage />}
+                {activePage === 'logic' && <LogicPage />}
+             </div>
           </div>
         )}
 
-        {/* Page Content */}
-        <div className="flex-1 overflow-hidden p-4 md:p-6">
-          {activePage === 'overview' && <OverviewPage sys={sys} />}
-          {activePage === 'logic' && <LogicPage sys={sys} />}
-        </div>
+        {/* Bottom Navigation */}
+        <nav className="flex justify-center pointer-events-auto pb-4">
+          <div className="flex items-center gap-2 bg-slate-900/80 backdrop-blur-xl border border-white/10 p-2 rounded-full shadow-2xl shadow-black/50">
+            
+            <NavButton 
+              active={activePage === 'overview'} 
+              onClick={() => setActivePage('overview')} 
+              icon={LayoutDashboard} 
+              label="3D Monitor" 
+            />
+            
+            <div className="w-px h-8 bg-white/10 mx-2"></div>
 
-      </main>
+            {/* 新增 Dashboard 按鈕 */}
+            <NavButton 
+              active={activePage === 'dashboard'} 
+              onClick={() => setActivePage('dashboard')} 
+              icon={Activity} 
+              label="Control Panel" 
+            />
+
+            <div className="w-px h-8 bg-white/10 mx-2"></div>
+            
+            <NavButton 
+              active={activePage === 'logic'} 
+              onClick={() => setActivePage('logic')} 
+              icon={Split} 
+              label="Automation Logic" 
+            />
+            
+          </div>
+        </nav>
+
+      </div>
     </div>
   );
 };
+
+const NavButton = ({ active, onClick, icon: Icon, label }) => (
+  <button
+    onClick={onClick}
+    className={`
+      flex items-center gap-2 px-6 py-3 rounded-full transition-all duration-300
+      ${active 
+        ? 'bg-green-500 text-white shadow-lg shadow-green-500/25 scale-105 font-bold' 
+        : 'text-slate-400 hover:text-white hover:bg-white/5'}
+    `}
+  >
+    <Icon size={20} />
+    <span className="text-sm">{label}</span>
+  </button>
+);
 
 export default GreenhouseClient;
