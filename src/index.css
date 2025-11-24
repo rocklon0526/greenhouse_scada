@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 確保 Canvas 容器佔滿空間，這對 3D 場景很重要 */
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden; /* 防止出現不必要的捲軸 */
+  background-color: #020617; /* 預設深色背景，避免載入時閃白 */
+}
