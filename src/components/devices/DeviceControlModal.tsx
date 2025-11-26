@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Save, Sliders, Thermometer } from 'lucide-react';
-import { DeviceState } from '../../store/useAppStore';
+import { DeviceState } from '../../types/devices';
 import { InfrastructureItem } from '../../configs/layoutConfig';
 
 interface ExtendedDevice extends InfrastructureItem, DeviceState {}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2, Save, ArrowRight } from 'lucide-react';
-import { Rule } from '../../store/useAppStore';
+import { Rule } from '../../types/rules';
 
 const PARAMETERS = [
   { value: 'indoor_temp', label: 'Indoor Temp (°C)' }, { value: 'outdoor_temp', label: 'Outdoor Temp (°C)' },
