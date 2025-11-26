@@ -114,37 +114,37 @@ SCADA 系統架構與控制流程圖
 此圖表展示了系統中各個層級（使用者層、伺服器層、設備層）之間的連接關係與通訊協定。
 ```mermaid
 graph TD
-    subgraph User_Layer [使用者層 (Frontend)]
+    subgraph User_Layer [使用者層]
         direction TB
-        Browser[網頁瀏覽器 (React App)]
-        ThreeJS[3D 視覺化 (Three.js)]
-        Dashboard[儀表板 (Dashboard)]
+        Browser[網頁瀏覽器]
+        ThreeJS[3D 視覺化]
+        Dashboard[儀表板]
         
         Browser --> ThreeJS
         Browser --> Dashboard
     end
 
-    subgraph Server_Layer [伺服器層 (Backend & DB)]
+    subgraph Server_Layer [伺服器層]
         direction TB
-        Backend[後端服務 (Node.js/Java)]
-        DB[(資料庫 (SQL/InfluxDB))]
+        Backend[後端服務]
+        DB[資料庫]
         
         Backend <-->|讀寫歷史數據| DB
     end
 
-    subgraph Field_Layer [現場設備層 (Field Devices)]
+    subgraph Field_Layer [現場設備層]
         direction TB
-        PLC[PLC 控制器 (Modbus Slave)]
+        PLC[PLC 控制器]
         Sensor[溫度感測器]
-        Fan[排風扇 (Relay)]
+        Fan[排風扇]
         
-        PLC -->|電氣訊號 (4-20mA)| Sensor
-        PLC -->|電氣訊號 (DO)| Fan
+        PLC -->|電氣訊號| Sensor
+        PLC -->|電氣訊號| Fan
     end
 
     %% 連接關係
     Browser <-->|HTTP REST API / WebSocket| Backend
-    Backend <-->|Modbus TCP (Port 502)| PLC
+    Backend <-->|Modbus TCP| PLC
 
     %% 樣式設定
     classDef userFill fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
