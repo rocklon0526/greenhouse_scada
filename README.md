@@ -1,70 +1,105 @@
-# Getting Started with Create React App
+# 🌿 Greenhouse OS - Web SCADA System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+![License](httpsjp://img.shields.io/badge/license-MIT-blue.svg)
+![React](https://img.shields.io/badge/React-18-zn.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+![Vite](https://img.shields.io/badge/Vite-5-purple)
+![TailwindCSS](https://img.shields.io/badge/Tailwind-CSS-qc.svg)
 
-## Available Scripts
+**Greenhouse OS** is a modern, web-based SCADA (Supervisory Control and Data Acquisition) system designed for intelligent greenhouse management. It combines real-time data monitoring, interactive 3D visualization, and automated device control into a seamless user interface.
 
-In the project directory, you can run:
+> Built with React, Three.js (Fiber), and TypeScript.
 
-### `npm start`
+## ✨ Key Features
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+* **🖥️ Interactive 3D Visualization**:
+    * Full 3D representation of the greenhouse layout using `React Three Fiber`.
+    * Visual status indicators for Vertical Racks, Sensor Groups (Top/Mid/Bot), and Infrastructure.
+    * Interactive elements: Click on sensors or devices to view details.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+* **QC Real-time Monitoring**:
+    * Visualizes Temperature, Humidity, and CO2 levels across different vertical levels (Z-axis).
+    * Integrated **Weather Station** panel for outdoor conditions (UV, Temp, Humidity).
+    * Historical data trending charts on the dashboard.
 
-### `npm test`
+* **QC Device Control**:
+    * **Manual/Auto Modes**: Toggle system-wide automation.
+    * **Equipment Control**: Manage Water Walls, Exhaust Fans, and AC Units.
+    * Configurable parameters (ejp. Fan Speed, Water Level, Target Temperature).
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+* **⚙️ Automation Logic Builder**:
+    * **No-Code Rule Engine**: Create custom logic rules (e.g., "IF Indoor Temp > 28°C THEN Turn ON Fans").
+    * Support for AND/OR logic conditions.
+    * Priority-based execution.
 
-### `npm run build`
+* **🎨 Responsive & Modern UI**:
+    * Dark mode aesthetic utilizing Tailwind CSS.
+    * Glassmorphism design elements.
+    * Fully responsive layout for desktop and tablet monitoring.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🛠️ Tech Stack
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+* **Core**: React 18, TypeScript, Vite
+* **Styling**: Tailwind CSS, Lucide React (Icons)
+* **State Management**: Zustand
+* **3D Graphics**: @react-three/fiber, @react-three/drei, Three.js
+* **Routing**: React Router DOM
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 🚀 Getting Started
 
-### `npm run eject`
+Follow these steps to set up the project locally.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Prerequisites
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+* Node.js (v16 or higher)
+* npm or yarn
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Installation
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+1.  **Clone the repository**
+    ```bash
+    git clone [https://github.com/rocklon0526/greenhouse_scada.git](https://github.com/rocklon0526/greenhouse_scada.git)
+    cd greenhouse_scada
+    ```
 
-## Learn More
+2.  **Install dependencies**
+    ```bash
+    npm install
+    # or
+    yarn install
+    ```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+3.  **Configure Environment**
+    Create a `.env` file in the root directory (optional if using defaults):
+    ```env
+    VITE_API_URL=http://localhost:8088/system/webdev/ai_env_control/scada_api
+    VITE_USE_MOCK=true
+    ```
+    *Set `VITE_USE_MOCK=true` to run without a backend server.*
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+4.  **Run Development Server**
+    ```bash
+    npm run dev
+    ```
+    Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
 
-### Code Splitting
+## ws Project Structure
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```text
+src/
+├── components/
+│   ├── 3d/            # Three.js components (VerticalRack, Fan3D, etc.)
+│   ├── devices/       # Device control modals
+│   ├── logic/         # Rule builder components
+│   └── ui/            # Reusable UI cards/buttons
+├── configs/
+│   ├── constants.ts   # App-wide constants
+│   └── layoutConfig.ts # Warehouse layout & 3D coordinates definition
+├── mocks/             # Mock data generators for demo mode
+├── pages/
+│   ├── OverviewPage.tsx  # Main 3D Scene
+│   ├── DashboardPage.tsx # 2D Data & Charts
+│   └── LogicPage.tsx     # Automation Logic Builder
+├── services/          # API integration
+├── stores/            # Global state (Zustand)
+└── types/             # TypeScript interfaces
