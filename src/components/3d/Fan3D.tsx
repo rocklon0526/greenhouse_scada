@@ -1,8 +1,14 @@
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Group } from 'three';
 
-const Fan3D = ({ position, isRunning }) => {
-  const bladeRef = useRef();
+interface Fan3DProps {
+  position: [number, number, number];
+  isRunning: boolean;
+}
+
+const Fan3D: React.FC<Fan3DProps> = ({ position, isRunning }) => {
+  const bladeRef = useRef<Group>(null);
   useFrame((state, delta) => {
     if (isRunning && bladeRef.current) bladeRef.current.rotation.z += delta * 5;
   });
