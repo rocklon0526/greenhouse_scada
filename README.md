@@ -103,3 +103,97 @@ src/
 ├── services/          # API integration
 ├── stores/            # Global state (Zustand)
 └── types/             # TypeScript interfaces
+```
+
+SCADA 系統架構與控制流程圖
+
+本文檔包含兩張圖表，旨在說明智慧溫室 SCADA 系統的整體架構以及「高溫自動排風」的控制邏輯流程。
+
+1. 系統架構圖 (System Architecture)
+
+此圖表展示了系統中各個層級（使用者層、伺服器層、設備層）之間的連接關係與通訊協定。
+```mermaid
+graph TD
+    subgraph User_Layer [使用者層 (Frontend)]
+        direction TB
+        Browser[網頁瀏覽器 (React App)]
+        ThreeJS[3D 視覺化 (Three.js)]
+        Dashboard[儀表板 (Dashboard)]
+        
+        Browser --> ThreeJS
+        Browser --> Dashboard
+    end
+
+    subgraph Server_Layer [伺服器層 (Backend & DB)]
+        direction TB
+        Backend[後端服務 (Node.js/Java)]
+        DB[(資料庫 (SQL/InfluxDB))]
+        
+        Backend <-->|讀寫歷史數據| DB
+    end
+
+    subgraph Field_Layer [現場設備層 (Field Devices)]
+        direction TB
+        PLC[PLC 控制器 (Modbus Slave)]
+        Sensor[溫度感測器]
+        Fan[排風扇 (Relay)]
+        
+        PLC -->|電氣訊號 (4-20mA)| Sensor
+        PLC -->|電氣訊號 (DO)| Fan
+    end
+
+    %% 連接關係
+    Browser <-->|HTTP REST API / WebSocket| Backend
+    Backend <-->|Modbus TCP (Port 502)| PLC
+
+    %% 樣式設定
+    classDef userFill fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef serverFill fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef fieldFill fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
+
+    class Browser,ThreeJS,Dashboard userFill;
+    class Backend,DB serverFill;
+    class PLC,Sensor,Fan fieldFill;
+```
+
+2. 高溫自動排風控制時序圖 (High Temp Auto-Ventilation Sequence)
+
+此時序圖詳細描述了當溫室溫度超過設定值（例如 28°C）時，系統如何自動偵測並觸發排風扇的動作流程。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Frontend as 前端 (React UI)
+    participant Backend as 後端 (Logic Engine)
+    participant DB as 資料庫
+    participant PLC as PLC (Modbus Slave)
+    participant Devices as 現場設備 (Sensor/Fan)
+
+    Note over Backend, PLC: 1. 定期輪詢 (Polling Loop)
+    
+    loop 每 1 秒
+        Backend->>PLC: Read Holding Register (40001) [取得溫度]
+        PLC-->>Backend: Return Value: 285 (代表 28.5°C)
+        
+        Backend->>Backend: 檢查邏輯規則: IF Temp > 28.0
+        
+        rect rgb(255, 240, 240)
+            Note over Backend: 觸發高溫邏輯
+            Backend->>PLC: Write Coil (00001) = ON [啟動風扇]
+            PLC->>Devices: 通電繼電器
+            Devices-->>PLC: 風扇開始運轉
+        end
+        
+        Backend->>DB: Insert Log {time: now, temp: 28.5, fan: ON}
+    end
+
+    Note over Frontend, Backend: 2. 前端更新 (UI Update)
+
+    loop 每 2 秒
+        Frontend->>Backend: GET /api/status
+        Backend-->>Frontend: JSON { temp: 28.5, devices: { fan-1: "ON" } }
+        
+        Frontend->>Frontend: 更新 3D 模型 (風扇旋轉動畫)
+        Frontend->>Frontend: 更新 Dashboard (顯示警告紅燈)
+    end
+```
