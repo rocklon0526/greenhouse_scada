@@ -3,3 +3,4 @@ export * from './sensors';
 export * from './devices';
 export * from './rules';
 export * from './store';
+export * from './farming';

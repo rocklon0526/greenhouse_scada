@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Split, Leaf, Activity, LucideIcon } from 'lucide-react';
+import { LayoutDashboard, Split, Leaf, Activity, LucideIcon, FlaskConical } from 'lucide-react';
 import OverviewPage from './pages/OverviewPage';
 import { useAppStore } from './stores/useAppStore';
 
@@ -31,6 +31,8 @@ const GreenhouseClient = () => {
             <NavButton to="/" icon={LayoutDashboard} label="3D Monitor" />
             <div className="w-px h-8 bg-white/10 mx-2"></div>
             <NavButton to="/dashboard" icon={Activity} label="Control Panel" />
+            <div className="w-px h-8 bg-white/10 mx-2"></div>
+            <NavButton to="/formula" icon={FlaskConical} label="Formulas" />
             <div className="w-px h-8 bg-white/10 mx-2"></div>
             <NavButton to="/logic" icon={Split} label="Automation Logic" />
           </div>

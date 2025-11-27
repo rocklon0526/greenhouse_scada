@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import GreenhouseClient from './GreenhouseClient';
 import DashboardPage from './pages/DashboardPage';
 import LogicPage from './pages/LogicPage';
+import FormulaPage from './pages/FormulaPage';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
           <Route index element={<></>} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="logic" element={<LogicPage />} />
+          <Route path="formula" element={<FormulaPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

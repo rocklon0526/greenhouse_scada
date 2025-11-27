@@ -1,3 +1,5 @@
+import { DosingTank } from '../types/farming';
+
 export interface InfrastructureItem {
   id: string;
   label?: string;
@@ -33,6 +35,10 @@ export interface LayoutConfig {
   sensorPoints: SensorPoint[];
   ducts: Array<{ position: [number, number, number]; size: [number, number, number] }>;
   racks: RackData[];
+  dosingSystem?: {
+    position: [number, number, number];
+    tankConfigs: { id: number; color: string }[];
+  };
 }
 
 const BASE_LAYOUT: LayoutConfig = {
@@ -79,6 +85,16 @@ const generateFullLayout = (base: LayoutConfig): LayoutConfig => {
      const x = (i - AISLES / 2) * SPACING_X - (SPACING_X/2); 
      if(i > 0) layout.racks.push({ id: `R-${i}`, position: [x + 4, 0, 0], levels: 5, width: 2, length: 40, height: 6 });
   }
+
+  // 更新落料桶位置到左後方 (對應紅色區塊)
+  layout.dosingSystem = {
+    position: [-35, 0, -20], 
+    tankConfigs: [
+      { id: 1, color: '#a855f7' }, { id: 2, color: '#ec4899' },
+      { id: 3, color: '#3b82f6' }, { id: 4, color: '#10b981' },
+      { id: 5, color: '#f59e0b' }, { id: 6, color: '#6366f1' }
+    ]
+  };
   
   return layout;
 }

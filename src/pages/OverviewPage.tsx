@@ -1,13 +1,15 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrthographicCamera, OrbitControls, Grid, Environment, ContactShadows, Stars } from '@react-three/drei';
-import { XCircle, CloudSun, Thermometer, Droplets } from 'lucide-react'; 
+import { XCircle, CloudSun } from 'lucide-react'; 
 import * as THREE from 'three';
 import { WAREHOUSE_LAYOUT } from '../configs/layoutConfig';
 import { useAppStore } from '../stores/useAppStore';
 import VerticalRack from '../components/3d/VerticalRack';
 import SensorGroup from '../components/3d/SensorGroup';
 import { Infrastructure } from '../components/3d/Infrastructure';
+import { DosingSystem3D } from '../components/3d/DosingSystem3D';
+import RackNutrientTank3D from '../components/3d/RackNutrientTank3D';
 
 const SensorDetailPanel = () => {
   const { selectedSensorId, sensors, clearSelection } = useAppStore();
@@ -52,7 +54,8 @@ const WeatherPanel = () => {
 }
 
 const OverviewPage = () => {
-  const { initSystem, sensors, devices, toggleDevice, clearSelection } = useAppStore();
+  // @ts-ignore
+  const { initSystem, sensors, devices, toggleDevice, clearSelection, rackTanks } = useAppStore();
   useEffect(() => { const cleanup = initSystem(WAREHOUSE_LAYOUT); return cleanup; }, [initSystem]);
 
   return (
@@ -68,6 +71,13 @@ const OverviewPage = () => {
         <Environment preset="city" />
         <group position={[0, -5, 0]}>
           <Grid position={[0, 0.01, 0]} args={[120, 120]} cellColor="#334155" sectionColor="#64748b" fadeDistance={150} infiniteGrid />
+          
+          <DosingSystem3D />
+          
+          {Object.values(rackTanks || {}).map((tank: any) => (
+            <RackNutrientTank3D key={tank.rackId} data={tank} />
+          ))}
+
           {WAREHOUSE_LAYOUT.racks.map((rack) => <VerticalRack key={rack.id} data={rack} />)}
           {sensors.map((group) => <SensorGroup key={group.id} data={group} />)}
           <Infrastructure config={WAREHOUSE_LAYOUT.infrastructure} devices={devices} onToggle={toggleDevice} />
