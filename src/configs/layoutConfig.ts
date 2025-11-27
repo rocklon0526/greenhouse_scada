@@ -46,17 +46,12 @@ const BASE_LAYOUT: LayoutConfig = {
 
   infrastructure: {
     waterWalls: [
-      { id: 'ww-1', label: "Water Wall A", position: [-15, 5, -28], size: [20, 4, 1], color: "#ef4444", defaultParams: { level: 1 } },
-      { id: 'ww-2', label: "Water Wall B", position: [15, 5, -28], size: [20, 4, 1], color: "#ef4444", defaultParams: { level: 1 } }
+      { id: 'ww-2', label: "Water Wall A", position: [22, 5, -28], size: [20, 4, 1], color: "#ef4444", defaultParams: { level: 1 } }
     ],
-    fans: [
-      { id: 'fan-1', label: "Fan #1", position: [-18, 5, 28], size: [4, 4, 1], color: "#3b82f6", defaultParams: { speed: 100 } },
-      { id: 'fan-2', label: "Fan #2", position: [-6, 5, 28], size: [4, 4, 1], color: "#3b82f6", defaultParams: { speed: 100 } },
-      { id: 'fan-3', label: "Fan #3", position: [6, 5, 28], size: [4, 4, 1], color: "#3b82f6", defaultParams: { speed: 100 } },
-      { id: 'fan-4', label: "Fan #4", position: [18, 5, 28], size: [4, 4, 1], color: "#3b82f6", defaultParams: { speed: 100 } }
-    ],
+    // 風扇現在改為動態生成，這裡的設定會被覆蓋，保留空陣列或預設值皆可
+    fans: [], 
     acUnits: [
-      { id: 'ac-1', label: "Main AC", position: [28, 2, 0], size: [4, 4, 50], color: "#eab308", defaultParams: { targetTemp: 26, mode: 'cool' } }
+      { id: 'ac-1', label: "Main AC", position: [35, 2, 0], size: [4, 4, 50], color: "#eab308", defaultParams: { targetTemp: 26, mode: 'cool' } }
     ],
     weatherStation: { position: [-25, 0, 35], color: "#a855f7" }
   },
@@ -68,25 +63,69 @@ const BASE_LAYOUT: LayoutConfig = {
 const generateFullLayout = (base: LayoutConfig): LayoutConfig => {
   const layout = JSON.parse(JSON.stringify(base)) as LayoutConfig;
   
-  const AISLES = 6;
+  // --- 參數設定 ---
+  const NUM_AISLES = 2;       // 總共 2 條走道
+  const AISLE_SPACING = 10;   // 走道中心點的間距 (您的設定)
+  const RACK_OFFSET = 3.8;    // 層架距離走道中心的偏移量
   const SENSORS_PER_AISLE = 3;
-  const SPACING_X = 8;
-  const SPACING_Z = 15;
 
-  for (let i = 0; i < AISLES; i++) {
-    const x = (i - (AISLES - 1) / 2) * SPACING_X;
-    layout.ducts.push({ position: [x, 8, 0], size: [0.5, 0.5, 50] });
+  // [計算偏移量] 
+  // 目標座標: Fan1 X=25, Fan2 X=15
+  // 公式: ((1)/2 - 0) * 10 + SHIFT = 5 + SHIFT = 25  => SHIFT = 20
+  const GROUP_SHIFT_X = 20; 
+
+  // [關鍵步驟] 清空並重新生成風扇，確保每個走道對應一個風扇
+  layout.infrastructure.fans = [];
+
+  for (let i = 0; i < NUM_AISLES; i++) {
+    // 計算每條走道的 X 軸中心點 (從右向左生成: 25 -> 15)
+    const aisleX = ((NUM_AISLES - 1) / 2 - i) * AISLE_SPACING + GROUP_SHIFT_X;
+    
+    // 1. 動態生成對應走道的風扇 (Fan)
+    layout.infrastructure.fans.push({
+      id: `fan-${i + 1}`,
+      label: `Fan #${i + 1}`,
+      position: [aisleX, 5, 28], // X=aisleX, Z=28 (後牆)
+      size: [4, 4, 1],
+      color: "#3b82f6",
+      defaultParams: { speed: 100 }
+    });
+
+    // 2. 建立中間走道的設施 (Ducts, Sensors)
+    layout.ducts.push({ position: [aisleX, 8, 0], size: [0.4, 0.4, 0] }); 
+    
     for (let j = 0; j < SENSORS_PER_AISLE; j++) {
-      const z = (j - (SENSORS_PER_AISLE - 1) / 2) * SPACING_Z;
-      layout.sensorPoints.push({ id: `Aisle-${i+1}-P-${j+1}`, position: [x, 4, z], aisle: i + 1 });
+      const z = (j - (SENSORS_PER_AISLE - 1) / 2) * 19;
+      layout.sensorPoints.push({ 
+        id: `Aisle-${i+1}-P-${j+1}`, 
+        position: [aisleX, 4, z], 
+        aisle: i + 1 
+      });
     }
-  }
-  for (let i = 0; i < AISLES + 1; i++) {
-     const x = (i - AISLES / 2) * SPACING_X - (SPACING_X/2); 
-     if(i > 0) layout.racks.push({ id: `R-${i}`, position: [x + 4, 0, 0], levels: 5, width: 2, length: 40, height: 6 });
+
+    // 3. 建立走道兩側的層架 (Rack-Aisle-Rack)
+    // 右側層架 (A側)
+    layout.racks.push({ 
+      id: `R-${i+1}A`, 
+      position: [aisleX + RACK_OFFSET, 0, 0], 
+      levels: 5, 
+      width: 2, 
+      length: 40, 
+      height: 6 
+    });
+
+    // 左側層架 (B側)
+    layout.racks.push({ 
+      id: `R-${i+1}B`, 
+      position: [aisleX - RACK_OFFSET, 0, 0], 
+      levels: 5, 
+      width: 2, 
+      length: 40, 
+      height: 6 
+    });
   }
 
-  // 更新落料桶位置到左後方 (對應紅色區塊)
+  // 調配區位置
   layout.dosingSystem = {
     position: [-35, 0, -20], 
     tankConfigs: [

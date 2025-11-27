@@ -53,10 +53,11 @@ export const useAppStore = create<ExtendedStore>((set, get) => ({
     // 2. Initialize Rack Nutrient Tanks (One per rack)
     const initialRackTanks: Record<string, RackNutrientTank> = {};
     layoutConfig.racks.forEach((rack: any) => {
+      // 根據您的需求修改位置：rack.position[2] + (rack.length / 2) + 8.5
+      // 這樣會讓養液桶位於層架後方靠近風扇的位置
       initialRackTanks[rack.id] = {
         rackId: rack.id,
-        // Position tank slightly offset from the rack
-        position: [rack.position[0] + 1.8, 0, rack.position[2]], 
+        position: [rack.position[0], 0, rack.position[2] + (rack.length / 2) + 8.5], 
         level: 2, // Start at Medium level
         ph: 5.8,
         ec: 1.5,

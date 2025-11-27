@@ -41,10 +41,15 @@ export const DosingSystem3D = () => {
   const { dosingTanks } = useAppStore();
   const [mixHovered, setMixHovered] = useState(false); 
   
-  // 位置設定於紅框區 (左後方，再往左移一些)
+  // 調配區位置
   const baseX = -40; 
   const baseZ = -25;
   const radius = 3.5;
+
+  // 用來連接後方主幹道的位置參數
+  // 後方管線 Z 軸座標約為 22.5 (根據 RackNutrientTank 位置推算)
+  const mainPipeZ = 22.5; 
+  const mainPipeColor = "#ef4444";
 
   if (!dosingTanks) return null;
 
@@ -69,18 +74,12 @@ export const DosingSystem3D = () => {
           const z = Math.sin(angle) * radius;
           return <DosingTank key={tank.id} data={tank} position={[x, 0, z]} labelOffset={[x, z]} color={['#a855f7', '#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#6366f1'][i]} />;
         })}
-        {/* 連接管與支架 */}
-        {dosingTanks.map((_: any, i: number) => {
-           const angle = (i / 6) * Math.PI * 2;
-           return <mesh key={i} position={[Math.cos(angle)*radius*0.6, -2, Math.sin(angle)*radius*0.6]} rotation={[0, -angle, Math.PI/4]}><cylinderGeometry args={[0.08, 0.08, radius]} /><meshStandardMaterial color="#64748b" /></mesh>
-        })}
         <mesh position={[0, -0.1, 0]} rotation={[Math.PI/2, 0, 0]}><torusGeometry args={[radius, 0.1, 16, 64]} /><meshStandardMaterial color="#334155" /></mesh>
       </group>
 
       {/* 2. 中層：漏斗 */}
       <group position={[0, 2, 0]}>
         <mesh><cylinderGeometry args={[2.5, 0.4, 2.5, 32, 1, true]} /><meshStandardMaterial color="#94a3b8" side={2} opacity={0.6} transparent metalness={0.5} /></mesh>
-        <mesh position={[0, -2.5, 0]}><cylinderGeometry args={[0.3, 0.3, 3]} /><meshStandardMaterial color="#64748b" /></mesh>
       </group>
 
       {/* 3. 下層：調配桶 (Mixing Tank) */}
@@ -97,8 +96,34 @@ export const DosingSystem3D = () => {
           <meshStandardMaterial color="#0ea5e9" transparent opacity={0.7} emissive="#0284c7" emissiveIntensity={0.3} />
         </mesh>
 
-        {/* --- 調配桶互動式卡片 (風格統一化) --- */}
-        {/* 位置調整到桶子上方偏右，避免與其他物件重疊 */}
+        {/* --- 新增：調配桶出口與總管線連線 --- */}
+        
+        {/* 出口管 (從桶底出來，往後方延伸) */}
+        {/* 計算 Z 軸長度: 目標 Z (28.5) - 目前 Z (baseZ = -25) = 距離約 53.5 */}
+        <group position={[0, -1.5, (mainPipeZ - baseZ) / 2]}> 
+           <mesh rotation={[Math.PI/2, 0, 0]}>
+              <cylinderGeometry args={[0.3, 0.3, mainPipeZ - baseZ, 16]} />
+              <meshStandardMaterial color={mainPipeColor} metalness={0.5} roughness={0.2} />
+           </mesh>
+        </group>
+
+        {/* 總電磁閥 (Main Valve) - 放置在靠近桶子的出口處 */}
+        <group position={[0, -1.5, 4]} rotation={[0, 0, Math.PI/2]}>
+           <mesh>
+             <boxGeometry args={[0.8, 1.2, 0.8]} />
+             <meshStandardMaterial color="#1e293b" />
+           </mesh>
+           <mesh position={[0, 0.8, 0]}>
+             <cylinderGeometry args={[0.3, 0.3, 0.6]} />
+             <meshStandardMaterial color="#f59e0b" emissive="#f59e0b" emissiveIntensity={0.5} />
+           </mesh>
+           {/* Valve Label */}
+           <Html position={[0, 1.5, 0]} center transform sprite>
+              <div className="text-[8px] bg-black/80 text-orange-400 px-1 rounded border border-orange-500/50">MAIN V.</div>
+           </Html>
+        </group>
+
+        {/* --- 互動式 UI 卡片 --- */}
         <Html position={[-4, -6, 0]} center style={{ pointerEvents: 'none' }} zIndexRange={[100, 0]}>
            <div 
               className={`flex flex-col items-center gap-1 transition-all duration-300 ease-out origin-bottom
@@ -107,18 +132,13 @@ export const DosingSystem3D = () => {
               onMouseEnter={() => setMixHovered(true)}
               onMouseLeave={() => setMixHovered(false)}
            >
-              {/* 詳細資訊卡片 (彈出層 - 風格與 Sensor 一致) */}
-              <div 
-                className={`overflow-hidden transition-all duration-300 ease-out shadow-2xl backdrop-blur-md border border-blue-500/50 rounded-xl bg-slate-900/95
+              <div className={`overflow-hidden transition-all duration-300 ease-out shadow-2xl backdrop-blur-md border border-blue-500/50 rounded-xl bg-slate-900/95
                   ${isExpanded ? 'max-h-48 opacity-100 mb-2 translate-y-0' : 'max-h-0 opacity-0 translate-y-4'}`}
                 style={{ width: '160px' }}
               >
                  <div className="bg-slate-800/80 px-3 py-1.5 border-b border-slate-700 flex justify-between items-center">
                     <span className="text-[10px] font-bold text-blue-100 tracking-wider">MIXER</span>
-                    <div className="flex items-center gap-1">
-                      <div className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-green-400' : 'bg-yellow-400'} animate-pulse`}></div>
-                      <span className="text-[9px] font-mono text-slate-300">{mixTankData.status}</span>
-                    </div>
+                    <span className="text-[9px] font-mono text-slate-300">{mixTankData.status}</span>
                  </div>
                  <div className="p-3 space-y-2">
                     <div>
@@ -131,12 +151,8 @@ export const DosingSystem3D = () => {
                     </div>
                  </div>
               </div>
-
-              {/* 常駐小標籤 (膠囊狀 - 風格與 Sensor 一致) */}
-              <div className={`
-                 flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-lg backdrop-blur-md transition-all duration-300
-                 ${isExpanded ? 'bg-blue-600 border-blue-400 text-white ring-2 ring-blue-500/30' : 'bg-slate-800/80 border-slate-600 text-slate-300 hover:bg-slate-700'}
-              `}>
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-lg backdrop-blur-md transition-all duration-300
+                 ${isExpanded ? 'bg-blue-600 border-blue-400 text-white ring-2 ring-blue-500/30' : 'bg-slate-800/80 border-slate-600 text-slate-300 hover:bg-slate-700'}`}>
                  <div className="flex flex-col leading-none">
                     <span className="text-[8px] font-bold opacity-70 uppercase tracking-wider mb-0.5">Tank</span>
                     <span className="text-sm font-mono font-bold">Main</span>

@@ -21,7 +21,7 @@ const GreenhouseClient = () => {
             <div><h1 className="font-bold text-lg tracking-wide text-white">Greenhouse OS</h1><div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`}></span><p className="text-[10px] text-slate-400 uppercase tracking-wider">{connectionStatus === 'connected' ? 'System Online' : 'Offline'}</p></div></div>
           </div>
         </header>
-        <div className="flex-1 min-h-0 py-6 pointer-events-auto animate-in fade-in zoom-in-95 duration-300">
+        <div className={`flex-1 min-h-0 py-6 animate-in fade-in zoom-in-95 duration-300 ${isOverview ? 'pointer-events-none' : 'pointer-events-auto'}`}>
           <div className="h-full container mx-auto max-w-5xl">
             <Outlet />
           </div>
