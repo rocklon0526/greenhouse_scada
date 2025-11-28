@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import Card from '../components/ui/Card';
 import RuleBuilderModal from '../components/logic/RuleBuilderModal';
-import { Plus } from 'lucide-react';
+import { Plus, Droplets, Thermometer } from 'lucide-react';
 import { translations } from '../i18n/translations';
 
 const LogicPage = () => {
@@ -13,15 +13,27 @@ const LogicPage = () => {
   return (
     <div className="h-full flex flex-col gap-4 relative">
       <Card title={t.globalSettings} className="shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-slate-900/50 p-2 rounded border border-slate-700">
-            <span className="text-sm text-slate-400">{t.systemMode}:</span>
-            <button onClick={() => setSetting('autoMode', !settings.autoMode)} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${settings.autoMode ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}>{settings.autoMode ? t.auto : t.manual}</button>
+        <div className="flex flex-col md:flex-row items-center gap-4">
+          {/* 模式切換 */}
+          <div className="flex items-center gap-2 bg-slate-900/50 p-2 rounded border border-slate-700 w-full md:w-auto">
+            <span className="text-sm text-slate-400 whitespace-nowrap">{t.systemMode}:</span>
+            <button onClick={() => setSetting('autoMode', !settings.autoMode)} className={`flex-1 md:flex-none px-3 py-1 rounded text-xs font-bold transition-colors ${settings.autoMode ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}>{settings.autoMode ? t.auto : t.manual}</button>
           </div>
-          <div className="flex items-center gap-2 bg-slate-900/50 p-2 rounded border border-slate-700 flex-1">
-            <span className="text-sm text-slate-400">{t.safetyThreshold}:</span>
+          
+          {/* 溫度閥值設定 */}
+          <div className="flex items-center gap-2 bg-slate-900/50 p-2 rounded border border-slate-700 flex-1 w-full">
+            <Thermometer size={16} className="text-orange-400" />
+            <span className="text-sm text-slate-400 whitespace-nowrap">{t.safetyThreshold} (Temp):</span>
             <input type="range" min="20" max="40" step="0.5" value={settings.tempThreshold} onChange={(e) => setSetting('tempThreshold', parseFloat(e.target.value))} className="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500" />
-            <span className="font-mono font-bold text-blue-400">{settings.tempThreshold}°C</span>
+            <span className="font-mono font-bold text-blue-400 w-12 text-right">{settings.tempThreshold}°C</span>
+          </div>
+
+          {/* 濕度閥值設定 (新增) */}
+          <div className="flex items-center gap-2 bg-slate-900/50 p-2 rounded border border-slate-700 flex-1 w-full">
+            <Droplets size={16} className="text-blue-400" />
+            <span className="text-sm text-slate-400 whitespace-nowrap">{t.safetyThreshold} (Hum):</span>
+            <input type="range" min="40" max="100" step="5" value={settings.humThreshold || 80} onChange={(e) => setSetting('humThreshold', parseFloat(e.target.value))} className="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500" />
+            <span className="font-mono font-bold text-cyan-400 w-12 text-right">{settings.humThreshold || 80}%</span>
           </div>
         </div>
       </Card>

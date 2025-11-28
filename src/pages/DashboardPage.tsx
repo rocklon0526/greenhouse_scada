@@ -9,9 +9,9 @@ import { translations } from '../i18n/translations';
 
 const SimpleLineChart = ({ data, dataKey, color, height = 100, loadingText }: { data: any[], dataKey: string, color: string, height?: number, loadingText: string }) => {
     if (!data || data.length < 2) return <div className="h-24 flex items-center justify-center text-slate-600 text-xs">{loadingText}</div>;
-    const maxVal = Math.max(...data.map(d => d[dataKey])) + 5;
-    const minVal = Math.min(...data.map(d => d[dataKey])) - 5;
-    const points = data.map((d, i) => `${(i / (data.length - 1)) * 100},${100 - ((d[dataKey] - minVal) / (maxVal - minVal)) * 100}`).join(' ');
+    const maxVal = Math.max(...data.map((d: any) => d[dataKey])) + 5;
+    const minVal = Math.min(...data.map((d: any) => d[dataKey])) - 5;
+    const points = data.map((d: any, i: number) => `${(i / (data.length - 1)) * 100},${100 - ((d[dataKey] - minVal) / (maxVal - minVal)) * 100}`).join(' ');
     return (
       <div className="w-full" style={{ height: `${height}px` }}>
         <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" className="overflow-visible">
@@ -68,7 +68,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ label, id, status, params, onCl
 
 const DashboardPage = () => {
   const { history, devices, toggleDevice, controlDevice, language } = useAppStore();
-  const t = translations[language];
+  const t = translations[language as keyof typeof translations];
   const latest = history.length > 0 ? history[history.length - 1] : { temp: 0, hum: 0, co2: 400 };
   const [editingDevice, setEditingDevice] = useState<(InfrastructureItem & DeviceState) | null>(null);
   const { fans, waterWalls } = WAREHOUSE_LAYOUT.infrastructure;

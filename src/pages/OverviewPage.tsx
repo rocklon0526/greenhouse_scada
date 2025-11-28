@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrthographicCamera, OrbitControls, Grid, Environment, ContactShadows, Stars } from '@react-three/drei';
-import { XCircle, CloudSun, Beaker, Droplets, Activity, Zap, Power } from 'lucide-react'; // 引入 Zap, Power
+import { XCircle, CloudSun, Beaker, Droplets, Activity, Zap, Power, ArrowRightCircle } from 'lucide-react';
 import * as THREE from 'three';
 import { WAREHOUSE_LAYOUT } from '../configs/layoutConfig';
 import { useAppStore } from '../stores/useAppStore';
@@ -26,7 +26,6 @@ const DetailCard = ({ title, subTitle, onClose, children }: { title: string, sub
   </div>
 );
 
-// ... (SensorDetailPanel, DosingTankPanel 保持不變)
 const SensorDetailPanel = () => {
   const { selectedSensorId, sensors, clearSelection, language } = useAppStore();
   const t = translations[language];
@@ -85,11 +84,15 @@ const DosingTankPanel = () => {
   );
 };
 
-// 3. 調配桶卡片 (更新)
 const MixerPanel = () => {
   const { isMixerSelected, mixerData, clearSelection, toggleMixerValve, toggleMixerPump, language } = useAppStore();
   const t = translations[language];
   if (!isMixerSelected) return null;
+
+  // 修改：最大容量設定為 20T (20000 公升)
+  const MAX_CAPACITY = 20000;
+  // 計算百分比，限制在 0-100 之間
+  const fillPercentage = Math.min(100, Math.max(0, (mixerData.level / MAX_CAPACITY) * 100));
 
   return (
     <DetailCard title={t.mixerTitle} subTitle={t.mixerSubtitle} onClose={clearSelection}>
@@ -103,15 +106,20 @@ const MixerPanel = () => {
          </div>
          
          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-slate-400"><span>Tank Level</span><span>{mixerData.level} L</span></div>
+            <div className="flex justify-between text-xs text-slate-400">
+                <span>Tank Level (Max 20T)</span>
+                <span className="font-mono text-white">{mixerData.level} L</span>
+            </div>
             <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
-               <div className="h-full bg-blue-500 w-[65%]"></div>
+               {/* 動態寬度 */}
+               <div 
+                 className="h-full bg-blue-500 transition-all duration-500 ease-out" 
+                 style={{ width: `${fillPercentage}%` }}
+               ></div>
             </div>
          </div>
 
-         {/* 控制開關區域 */}
          <div className="grid grid-cols-2 gap-3">
-            {/* 水閥開關 */}
             <button 
                 onClick={toggleMixerValve}
                 className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all active:scale-95
@@ -124,7 +132,6 @@ const MixerPanel = () => {
                 <div className="text-[10px] opacity-70">{mixerData.valveOpen ? 'OPEN' : 'CLOSED'}</div>
             </button>
 
-            {/* 幫浦開關 */}
             <button 
                 onClick={toggleMixerPump}
                 className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all active:scale-95
@@ -153,9 +160,9 @@ const MixerPanel = () => {
   );
 };
 
-// ... (RackTankPanel 保持不變)
 const RackTankPanel = () => {
-  const { selectedRackTankId, rackTanks, clearSelection } = useAppStore();
+  // @ts-ignore
+  const { selectedRackTankId, rackTanks, clearSelection, startTransferProcess } = useAppStore();
   const tank = selectedRackTankId ? rackTanks[selectedRackTankId] : null;
   if (!tank) return null;
 
@@ -196,6 +203,16 @@ const RackTankPanel = () => {
                 ))}
              </div>
           </div>
+
+          {/* 測試按鈕：手動補水 (Scenario 2) */}
+          <button 
+            onClick={() => startTransferProcess(tank.rackId)}
+            disabled={tank.level > 1 || tank.status === 'FILLING'} // 只在低水位且閒置時可用
+            className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-900/20"
+          >
+            <ArrowRightCircle size={20} />
+            {tank.status === 'FILLING' ? 'Refilling...' : 'Start Refill Task'}
+          </button>
        </div>
     </DetailCard>
   );

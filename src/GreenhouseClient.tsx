@@ -7,7 +7,7 @@ import { translations } from './i18n/translations';
 
 const GreenhouseClient = () => {
   const { connectionStatus, language, setLanguage } = useAppStore();
-  const t = translations[language];
+  const t = translations[language as keyof typeof translations];
   const location = useLocation();
   const isOverview = location.pathname === '/';
 

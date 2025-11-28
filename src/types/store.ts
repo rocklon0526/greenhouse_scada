@@ -11,7 +11,8 @@ export interface AppState {
   weatherStation: { temp: number; hum: number; uv: number };
   devices: Record<string, DeviceState>;
   rules: Rule[];
-  settings: { autoMode: boolean; tempThreshold: number };
+  // 新增 humThreshold
+  settings: { autoMode: boolean; tempThreshold: number; humThreshold: number };
   selectedSensorId: string | null;
   history: Array<{ time: string; temp: number; hum: number; co2: number }>;
 }

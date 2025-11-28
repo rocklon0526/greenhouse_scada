@@ -1,6 +1,18 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Tailwind CSS v4 Setup
+  ---------------------
+  v4 版本不再需要 @tailwind base/components/utilities 指令。
+  也不再需要 tailwind.config.js (除非是為了相容性) 或 postcss.config.js。
+  
+  所有的主題自定義現在建議直接寫在 CSS 的 @theme 區塊中。
+*/
+
+@theme {
+  /* 您可以在這裡定義自定義變數，例如： */
+  --color-primary: #3b82f6;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
 
 /* 確保 Canvas 容器佔滿空間，這對 3D 場景很重要 */
 html, body, #root {

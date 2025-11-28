@@ -1,6 +1,22 @@
 /// <reference types="vite/client" />
 
-import type { ThreeElements } from '@react-three/fiber'
+import { ThreeElements } from '@react-three/fiber'
+
+// 針對 React 18+ 的 JSX 型別擴充
+declare global {
+  namespace React {
+    namespace JSX {
+      interface IntrinsicElements extends ThreeElements {}
+    }
+  }
+}
+
+// 備用：針對舊版或特定環境的全域 JSX
+declare global {
+  namespace JSX {
+    interface IntrinsicElements extends ThreeElements {}
+  }
+}
 
 interface ImportMetaEnv {
   readonly VITE_API_URL: string;
@@ -10,18 +26,3 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
-
-// 擴充 JSX.IntrinsicElements 以支援 R3F 元素 (mesh, group, etc.)
-// 同時宣告 React 命名空間與全域 JSX 命名空間，以相容不同的 TS 設定
-declare global {
-  namespace React {
-    namespace JSX {
-      interface IntrinsicElements extends ThreeElements {}
-    }
-  }
-  
-  namespace JSX {
-    interface IntrinsicElements extends ThreeElements {}
-  }
-}
-

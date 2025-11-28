@@ -1,24 +1,26 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import Card from '../components/ui/Card';
-import { Plus, Trash2, FlaskConical } from 'lucide-react';
+import { Plus, Trash2, FlaskConical, PlayCircle, Droplets } from 'lucide-react';
 import { Recipe } from '../types/farming';
 import { translations } from '../i18n/translations';
 
-const WATER_TONS = 15;
-const WATER_GRAMS = 15 * 1000 * 1000;
-
 const FormulaPage = () => {
   // @ts-ignore
-  const { recipes, dosingTanks, addRecipe, deleteRecipe, language } = useAppStore();
+  const { recipes, dosingTanks, addRecipe, deleteRecipe, startMixingProcess, mixerData, language } = useAppStore();
   const t = translations[language];
   const [name, setName] = useState('');
   const [ratios, setRatios] = useState<Record<number, string>>({});
+  
+  // 新增水量變數 (預設 15T)
+  const [waterTons, setWaterTons] = useState<number>(15);
 
   const calculateWeight = (ratioStr: string) => {
     const ratio = parseFloat(ratioStr);
     if (!ratio || ratio <= 0) return 0;
-    return WATER_GRAMS / ratio; 
+    // 使用動態設定的水量進行計算 (T -> g)
+    const waterGrams = waterTons * 1000 * 1000;
+    return waterGrams / ratio; 
   };
 
   const handleSave = () => {
@@ -40,7 +42,7 @@ const FormulaPage = () => {
     const newRecipe: Recipe = {
       id: Date.now().toString(),
       name,
-      targetWaterVolume: WATER_TONS,
+      targetWaterVolume: waterTons, // 儲存設定的水量
       ingredients,
       createdAt: new Date().toLocaleDateString()
     };
@@ -48,12 +50,14 @@ const FormulaPage = () => {
     addRecipe(newRecipe);
     setName('');
     setRatios({});
+    // Reset water tons to default if needed, or keep last used
   };
 
   return (
     <div className="h-full flex flex-col md:flex-row gap-4 p-2 overflow-y-auto">
       <div className="w-full md:w-1/3 flex flex-col gap-4">
-        <Card title={`${t.formulaCalc} (${WATER_TONS}T ${t.waterVolume})`}>
+        {/* 卡片標題現在動態顯示設定的水量 */}
+        <Card title={`${t.formulaCalc} (Target: ${waterTons}T)`}>
           <div className="space-y-4">
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase">{t.recipeNameLabel}</label>
@@ -63,8 +67,27 @@ const FormulaPage = () => {
                 className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white mt-1" 
               />
             </div>
+
+            {/* 新增水量設定輸入框 */}
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+                <Droplets size={12} />
+                {t.waterVolume} (Tons)
+              </label>
+              <div className="flex items-center gap-2 mt-1">
+                <input 
+                  type="number"
+                  min="1"
+                  step="0.5"
+                  value={waterTons} 
+                  onChange={e => setWaterTons(Number(e.target.value))}
+                  className="flex-1 bg-slate-950 border border-slate-700 rounded p-2 text-white font-mono" 
+                />
+                <span className="text-sm text-slate-400 font-bold">T</span>
+              </div>
+            </div>
             
-            <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
               {dosingTanks.map((tank: any) => {
                 const grams = calculateWeight(ratios[tank.id] || '0');
                 return (
@@ -102,6 +125,17 @@ const FormulaPage = () => {
 
       <div className="flex-1">
         <Card title={t.recipeDb} className="h-full">
+           {/* 狀態列 */}
+           {mixerData.status === 'Mixing' && (
+             <div className="mb-4 bg-green-900/20 border border-green-500/50 p-3 rounded-lg flex items-center justify-between animate-pulse">
+                <span className="text-green-400 font-bold flex items-center gap-2">
+                    <FlaskConical className="animate-bounce" size={18} />
+                    Processing Recipe...
+                </span>
+                <span className="font-mono text-white">{mixerData.progress}%</span>
+             </div>
+           )}
+
            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 overflow-y-auto h-full pb-10">
               {recipes.map((r: any) => (
                 <div key={r.id} className="bg-slate-900/50 border border-slate-700 rounded-xl p-4 flex flex-col justify-between group hover:border-blue-500/50 transition-colors">
@@ -113,7 +147,18 @@ const FormulaPage = () => {
                             <p className="text-xs text-slate-500">{t.baseWater}: {r.targetWaterVolume} T</p>
                         </div>
                     </div>
-                    <button onClick={() => deleteRecipe(r.id)} className="text-slate-600 hover:text-red-400"><Trash2 size={18} /></button>
+                    <div className="flex items-center gap-2">
+                        {/* 測試按鈕：開始混合 */}
+                        <button 
+                            onClick={() => startMixingProcess(r.id)}
+                            disabled={mixerData.status === 'Mixing'}
+                            className="p-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                            title="Start Mixing"
+                        >
+                            <PlayCircle size={18} />
+                        </button>
+                        <button onClick={() => deleteRecipe(r.id)} className="p-2 text-slate-600 hover:text-red-400 rounded-lg hover:bg-slate-800 transition-colors"><Trash2 size={18} /></button>
+                    </div>
                   </div>
                   <div className="space-y-1">
                     {r.ingredients.map((ing: any) => (

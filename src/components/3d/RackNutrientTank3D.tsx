@@ -6,7 +6,7 @@ import { useAppStore } from '../../stores/useAppStore';
 
 const RackNutrientTank3D: React.FC<{ data: RackNutrientTank }> = ({ data }) => {
   // @ts-ignore
-  const { selectRackTank, selectedRackTankId } = useAppStore();
+  const { selectRackTank, selectedRackTankId, toggleRackTankValve } = useAppStore();
   
   if (!data) return null;
 
@@ -14,10 +14,16 @@ const RackNutrientTank3D: React.FC<{ data: RackNutrientTank }> = ({ data }) => {
   const isSelected = selectedRackTankId === data.rackId;
   const fillPercentage = Math.max(15, (data.level / 4) * 100);
 
-  // 統一的點擊處理函數
+  // 統一的點擊處理函數 (選取物件)
   const handleClick = (e: any) => {
     e.stopPropagation();
     selectRackTank(data.rackId);
+  };
+
+  // 水閥開關點擊處理
+  const handleValveClick = (e: any) => {
+    e.stopPropagation(); // 阻止冒泡，避免同時觸發選取
+    toggleRackTankValve(data.rackId);
   };
 
   return (
@@ -27,9 +33,7 @@ const RackNutrientTank3D: React.FC<{ data: RackNutrientTank }> = ({ data }) => {
       onPointerOver={() => document.body.style.cursor = 'pointer'}
       onPointerOut={() => document.body.style.cursor = 'auto'}
     >
-      {/* 1. 隱形感應區 (Hitbox) 
-          增加一個透明的 Box 來擴大點擊範圍，解決點不到細管線的問題
-      */}
+      {/* 1. 隱形感應區 (Hitbox) */}
       <mesh position={[0, 1.5, 0]}>
         <boxGeometry args={[1.5, 3.5, 1.5]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -70,13 +74,17 @@ const RackNutrientTank3D: React.FC<{ data: RackNutrientTank }> = ({ data }) => {
             onClick={handleClick}
          >
             
-            {/* 水閥狀態開關 (Valve Indicator) */}
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center border shadow-lg backdrop-blur-sm transition-colors
-                ${data.valveOpen ? 'bg-green-500 text-white border-green-300 animate-pulse' : 'bg-slate-800 text-slate-500 border-slate-600'}`}>
+            {/* 水閥狀態開關 (Valve Indicator) - 可點擊 */}
+            <div 
+                onClick={handleValveClick}
+                className={`w-7 h-7 rounded-full flex items-center justify-center border shadow-lg backdrop-blur-sm transition-all hover:scale-110 active:scale-95
+                ${data.valveOpen ? 'bg-green-500 text-white border-green-300 animate-pulse ring-2 ring-green-500/30' : 'bg-slate-800 text-slate-500 border-slate-600 hover:bg-slate-700 hover:text-slate-300'}`}
+                title="Toggle Valve"
+            >
                 {data.valveOpen ? <Droplets size={16} fill="currentColor" /> : <Power size={16} />}
             </div>
 
-            {/* 垂直液位條 - 加粗 (w-6) 與加高 (h-24) */}
+            {/* 垂直液位條 */}
             <div className={`w-6 h-24 bg-slate-950/80 rounded-full border-2 p-[3px] shadow-xl backdrop-blur-sm flex flex-col justify-end overflow-hidden transition-colors
                 ${isSelected ? 'border-blue-400 ring-4 ring-blue-400/20' : 'border-slate-600/80 hover:border-slate-400'}`}>
                 

@@ -1,199 +1,259 @@
-# 🌿 Greenhouse OS - Web SCADA System
+🌿 Greenhouse OS - Web SCADA System
 
-![License](httpsjp://img.shields.io/badge/license-MIT-blue.svg)
-![React](https://img.shields.io/badge/React-18-zn.svg)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
-![Vite](https://img.shields.io/badge/Vite-5-purple)
-![TailwindCSS](https://img.shields.io/badge/Tailwind-CSS-qc.svg)
+Greenhouse OS 是一個現代化的網頁版 SCADA 系統，專為智慧溫室管理設計。結合即時數據監控、互動式 3D 視覺化以及自動化設備控制。
 
-**Greenhouse OS** is a modern, web-based SCADA (Supervisory Control and Data Acquisition) system designed for intelligent greenhouse management. It combines real-time data monitoring, interactive 3D visualization, and automated device control into a seamless user interface.
+🎮 自動化控制流程 (Automation Scenarios)
 
-> Built with React, Three.js (Fiber), and TypeScript.
+以下圖表描述了系統的三大核心自動化邏輯。這些流程涵蓋了使用者操作、前端驗證、後端處理、PLC 控制以及資料庫記錄。
 
-## ✨ Key Features
+一、調配桶混合流程 (Mixing Process)
 
-* **🖥️ Interactive 3D Visualization**:
-    * Full 3D representation of the greenhouse layout using `React Three Fiber`.
-    * Visual status indicators for Vertical Racks, Sensor Groups (Top/Mid/Bot), and Infrastructure.
-    * Interactive elements: Click on sensors or devices to view details.
+情境描述：
+此流程負責根據使用者選擇的配方，控制 PLC 進行精準的原料混合。
 
-* **QC Real-time Monitoring**:
-    * Visualizes Temperature, Humidity, and CO2 levels across different vertical levels (Z-axis).
-    * Integrated **Weather Station** panel for outdoor conditions (UV, Temp, Humidity).
-    * Historical data trending charts on the dashboard.
+使用者在前端選擇配方，並輸入目標水量。
 
-* **QC Device Control**:
-    * **Manual/Auto Modes**: Toggle system-wide automation.
-    * **Equipment Control**: Manage Water Walls, Exhaust Fans, and AC Units.
-    * Configurable parameters (ejp. Fan Speed, Water Level, Target Temperature).
+前端預檢：系統自動計算所需各原料重量，並比對當前原料桶存量。若任一原料不足，直接在前端阻擋並警示，不發送請求。
 
-* **⚙️ Automation Logic Builder**:
-    * **No-Code Rule Engine**: Create custom logic rules (e.g., "IF Indoor Temp > 28°C THEN Turn ON Fans").
-    * Support for AND/OR logic conditions.
-    * Priority-based execution.
+後端處理：若庫存充足，前端發送請求至後端。後端將參數寫入 PLC 並驗證。
 
-* **🎨 Responsive & Modern UI**:
-    * Dark mode aesthetic utilizing Tailwind CSS.
-    * Glassmorphism design elements.
-    * Fully responsive layout for desktop and tablet monitoring.
+製程執行：PLC 啟動混合設備（閥門/攪拌器）。後端定期輪詢 PLC 狀態並寫入資料庫（即時數據）。
 
-## 🛠️ Tech Stack
-
-* **Core**: React 18, TypeScript, Vite
-* **Styling**: Tailwind CSS, Lucide React (Icons)
-* **State Management**: Zustand
-* **3D Graphics**: @react-three/fiber, @react-three/drei, Three.js
-* **Routing**: React Router DOM
-
-## 🚀 Getting Started
-
-Follow these steps to set up the project locally.
-
-### Prerequisites
-
-* Node.js (v16 or higher)
-* npm or yarn
-
-### Installation
-
-1.  **Clone the repository**
-    ```bash
-    git clone [https://github.com/rocklon0526/greenhouse_scada.git](https://github.com/rocklon0526/greenhouse_scada.git)
-    cd greenhouse_scada
-    ```
-
-2.  **Install dependencies**
-    ```bash
-    npm install
-    # or
-    yarn install
-    ```
-
-3.  **Configure Environment**
-    Create a `.env` file in the root directory (optional if using defaults):
-    ```env
-    VITE_API_URL=http://localhost:8088/system/webdev/ai_env_control/scada_api
-    VITE_USE_MOCK=true
-    ```
-    *Set `VITE_USE_MOCK=true` to run without a backend server.*
-
-4.  **Run Development Server**
-    ```bash
-    npm run dev
-    ```
-    Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
-
-## ws Project Structure
-
-```text
-src/
-├── components/
-│   ├── 3d/            # Three.js components (VerticalRack, Fan3D, etc.)
-│   ├── devices/       # Device control modals
-│   ├── logic/         # Rule builder components
-│   └── ui/            # Reusable UI cards/buttons
-├── configs/
-│   ├── constants.ts   # App-wide constants
-│   └── layoutConfig.ts # Warehouse layout & 3D coordinates definition
-├── mocks/             # Mock data generators for demo mode
-├── pages/
-│   ├── OverviewPage.tsx  # Main 3D Scene
-│   ├── DashboardPage.tsx # 2D Data & Charts
-│   └── LogicPage.tsx     # Automation Logic Builder
-├── services/          # API integration
-├── stores/            # Global state (Zustand)
-└── types/             # TypeScript interfaces
-```
-
-SCADA 系統架構與控制流程圖
-
-本文檔包含兩張圖表，旨在說明智慧溫室 SCADA 系統的整體架構以及「高溫自動排風」的控制邏輯流程。
-
-1. 系統架構圖 (System Architecture)
-
-此圖表展示了系統中各個層級（使用者層、伺服器層、設備層）之間的連接關係與通訊協定。
+扣料與警報：製程結束後，系統自動扣除原料桶帳面庫存。若更新後的庫存低於安全閥值 (20%)，系統會觸發低水位警報並記錄。
 ```mermaid
-graph TD
-    subgraph User_Layer [使用者層]
-        direction TB
-        Browser[網頁瀏覽器]
-        ThreeJS[3D 視覺化]
-        Dashboard[儀表板]
-        
-        Browser --> ThreeJS
-        Browser --> Dashboard
+sequenceDiagram
+    autonumber
+    participant User as 使用者
+    participant FE as 前端 (React)
+    participant BE as 後端 API
+    participant DB as 資料庫
+    participant PLC as PLC (Modbus)
+    participant DosingTanks as 原料桶槽
+
+    User->>FE: 1. 選擇配方 (成分比例 & 水量)
+    FE->>FE: 計算各成分重量 (轉換 %)
+    
+    rect rgb(255, 250, 240)
+        Note over FE, DosingTanks: 預先檢查庫存
+        FE->>FE: 檢查各原料桶液位是否足夠
+        alt 液位不足
+            FE-->>User: ⚠️ 警示: 原料不足，無法開始
+        else 液位充足
+            FE->>BE: POST /api/mix (配方參數)
+            BE->>PLC: Write Registers (設定配方參數)
+            BE->>PLC: Read Registers (驗證配方是否寫入成功)
+            
+            alt 驗證成功
+                BE->>PLC: Write Coil (啟動製程訊號)
+                BE->>DB: Insert Log (製程開始, RecipeID)
+                BE-->>FE: 回覆: 開始混合
+                
+                loop 監控製程
+                    PLC->>PLC: 控制閥門/攪拌器
+                    FE->>BE: Polling Status
+                    BE->>PLC: Read Status
+                    BE-->>FE: 更新混合進度/狀態
+                    BE->>DB: 記錄即時製程數據 (每分鐘)
+                end
+
+                rect rgb(255, 240, 240)
+                    Note over PLC, DosingTanks: 製程結束後自動扣料
+                    PLC->>DosingTanks: 扣除各成分用量
+                    PLC->>PLC: 檢查剩餘液位
+                    
+                    opt 液位 < 閥值 (20%)
+                        PLC->>BE: 發送低液位警報
+                        BE->>DB: Insert Log (警報: 原料不足)
+                        BE->>FE: 顯示紅燈警示/警報通知
+                    end
+                end
+                
+                BE->>DB: Insert Log (製程結束, 產出量)
+
+            else 驗證失敗
+                BE-->>FE: 回覆: 設定失敗，請重試
+            end
+        end
     end
-
-    subgraph Server_Layer [伺服器層]
-        direction TB
-        Backend[後端服務]
-        DB[資料庫]
-        
-        Backend <-->|讀寫歷史數據| DB
-    end
-
-    subgraph Field_Layer [現場設備層]
-        direction TB
-        PLC[PLC 控制器]
-        Sensor[溫度感測器]
-        Fan[排風扇]
-        
-        PLC -->|電氣訊號| Sensor
-        PLC -->|電氣訊號| Fan
-    end
-
-    %% 連接關係
-    Browser <-->|HTTP REST API / WebSocket| Backend
-    Backend <-->|Modbus TCP| PLC
-
-    %% 樣式設定
-    classDef userFill fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
-    classDef serverFill fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef fieldFill fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
-
-    class Browser,ThreeJS,Dashboard userFill;
-    class Backend,DB serverFill;
-    class PLC,Sensor,Fan fieldFill;
 ```
 
-2. 高溫自動排風控制時序圖 (High Temp Auto-Ventilation Sequence)
+二、調配桶傳送至養液桶 (Transfer Logic)
 
-此時序圖詳細描述了當溫室溫度超過設定值（例如 28°C）時，系統如何自動偵測並觸發排風扇的動作流程。
+情境描述：
+此流程負責將調配好的養液傳送至指定的層架養液桶（Rack Tank）。
+
+使用者點擊「傳送養液」按鈕。
+
+前端防呆：檢查目標養液桶的當前水位。若水位非低位 (L1)，則視為還有殘留液體，禁止自動補水以防溢出，並提示使用者手動排水。
+
+任務啟動：若條件符合，後端發送指令給 PLC，開啟主閥、目標閥並啟動幫浦。
+
+自動補水：PLC 監控目標桶的浮球液位。當液位到達滿水位 (L4) 時，PLC 自動關閉幫浦與閥門，並回報任務完成。
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User as 使用者
+    participant FE as 前端 (React)
+    participant BE as 後端 API
+    participant DB as 資料庫
+    participant PLC as PLC
+    participant Tank as 養液桶感測器
+
+    User->>FE: 點擊「傳送養液」至指定桶槽
+    FE->>FE: 檢查目標桶槽水位狀態
+    
+    alt 水位 != L1 (非低水位)
+        FE-->>User: ⚠️ 警示: 請先手動排水至 L1
+    else 水位 == L1 (符合條件)
+        FE->>BE: POST /api/transfer (Source, Target)
+        BE->>PLC: 開啟主閥 & 目標桶閥門
+        BE->>PLC: 啟動幫浦 (Pump ON)
+        BE->>DB: Insert Log (傳送任務開始, TargetID)
+        BE-->>FE: 任務開始
+        
+        loop 自動補水監控
+            PLC->>Tank: 讀取浮球液位
+            Tank-->>PLC: 回傳液位 (L1...L4)
+            
+            opt 液位到達 L4 (滿水位)
+                PLC->>PLC: 關閉幫浦 & 閥門
+                PLC->>BE: 回報任務完成
+                BE->>DB: Insert Log (傳送任務完成)
+            end
+        end
+        BE-->>FE: 更新狀態: 閒置 (Idle)
+    end
+```
+
+三、環境控制自動化 (Environmental Control)
+
+情境描述：
+系統全天候監控溫室環境，並根據設定的邏輯自動調節設備。
+
+監控迴圈：後端定期讀取感測器數值，並寫入資料庫作為歷史紀錄。
+
+模式判斷：檢查系統是否處於「自動模式 (AUTO)」。若為手動模式則不介入。
+
+閥值檢查：若在自動模式且系統閒置，檢查溫度或濕度是否超出設定的安全閥值。
+
+規則執行：若超出閥值，系統根據優先權查詢啟用的規則。若找到符合的規則，則執行對應動作（如開啟風扇）。
+
+任務計時：設備啟動後會進入「任務執行中」狀態並倒數計時（例如 15 分鐘）。在此期間系統不會重複觸發規則。
+
+任務結束：倒數結束後，系統自動關閉設備，寫入任務結束紀錄，並回到待機監控狀態。
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Frontend as 前端 (React UI)
-    participant Backend as 後端 (Logic Engine)
+    participant FE as 前端 (React)
+    participant BE as 後端 (Logic Engine)
     participant DB as 資料庫
-    participant PLC as PLC (Modbus Slave)
-    participant Devices as 現場設備 (Sensor/Fan)
+    participant PLC as PLC (Sensors/IO)
 
-    Note over Backend, PLC: 1. 定期輪詢 (Polling Loop)
-    
-    loop 每 1 秒
-        Backend->>PLC: Read Holding Register (40001) [取得溫度]
-        PLC-->>Backend: Return Value: 285 (代表 28.5°C)
+    loop 監控迴圈 (每 2 秒)
+        BE->>PLC: 讀取環境感測器 (溫濕度)
+        PLC-->>BE: 回傳數值 (Temp/Hum)
+        BE->>DB: Insert Sensor History (定時儲存)
+        BE-->>FE: 推送即時狀態 (畫面呈現)
         
-        Backend->>Backend: 檢查邏輯規則: IF Temp > 28.0
-        
-        rect rgb(255, 240, 240)
-            Note over Backend: 觸發高溫邏輯
-            Backend->>PLC: Write Coil (00001) = ON [啟動風扇]
-            PLC->>Devices: 通電繼電器
-            Devices-->>PLC: 風扇開始運轉
+        Note over BE: 1. 判斷自動模式
+        alt 自動模式 = ON
+            
+            alt 系統狀態 = 執行任務中 (Running Task)
+                Note over BE: 倒數計時中... (Wait N mins)
+                BE->>BE: 檢查計時器是否結束
+                opt 計時結束
+                    BE->>PLC: 關閉設備 / 回復待機
+                    BE->>DB: Insert Log (自動化任務結束)
+                    BE->>BE: 狀態設為 Idle
+                end
+                
+            else 系統狀態 = 待機 (Idle)
+                Note over BE: 2. 判斷安全閥值
+                BE->>BE: 檢查 溫度 > TempThreshold OR 濕度 > HumThreshold?
+                
+                opt 超出閥值
+                    Note over BE: 3. 執行優先權規則
+                    BE->>DB: 查詢啟用中的規則 (Log讀取)
+                    
+                    loop 逐項判斷規則
+                        alt 規則符合且啟用
+                            Note over BE: 4. 執行對應手段
+                            BE->>PLC: 啟用設備 (風扇/水牆)
+                            BE->>DB: Insert Log (觸發規則: RuleID, Action)
+                            BE->>BE: 設定計時器 (例如 15分鐘)
+                            BE->>BE: 狀態設為 Running Task
+                            break 跳出規則檢查
+                            end
+                        end
+                    end
+                end
+            end
+            
+        else 手動模式
+            Note over BE: 等待使用者手動操作
         end
-        
-        Backend->>DB: Insert Log {time: now, temp: 28.5, fan: ON}
-    end
-
-    Note over Frontend, Backend: 2. 前端更新 (UI Update)
-
-    loop 每 2 秒
-        Frontend->>Backend: GET /api/status
-        Backend-->>Frontend: JSON { temp: 28.5, devices: { fan-1: "ON" } }
-        
-        Frontend->>Frontend: 更新 3D 模型 (風扇旋轉動畫)
-        Frontend->>Frontend: 更新 Dashboard (顯示警告紅燈)
     end
 ```
+
+🧪 功能測試指南 (Testing Guide)
+
+由於系統邏輯較為複雜，前端已實作對應的按鈕與設定介面供測試使用：
+
+測試「混合流程」:
+
+    進入 配方管理 (Formulas) 頁面。
+
+    在任意配方卡片上點擊 「Start Mix」 按鈕。
+
+    觀察 3D 視圖中的主調配桶 (Mixer) 狀態變為 Mixing，進度條開始跑動，完成後會自動扣除原料桶液位。
+
+測試「傳送/補水流程」:
+
+    進入 3D 監控 (Monitor) 或 Dashboard。
+
+    點擊任意 層架 (Rack) 或其養液桶。
+
+    在右側彈出的詳細資訊面板中，若水位為 L1，會顯示 「Start Refill」 按鈕。
+
+    點擊後，觀察 3D 視圖中的管線變色，且目標桶水位逐漸上升至 L4。
+
+測試「環境控制」:
+
+    進入 自動化邏輯 (Automation Logic) 頁面。
+
+    調整 「溫度閥值」 或新增的 「濕度閥值」。
+
+    確保系統處於 AUTO 模式。
+
+    若模擬數據超出設定值，Dashboard 上的風扇會自動開啟，並進入倒數計時狀態。
+
+🚀 Getting Started
+
+Follow these steps to set up the project locally.
+
+Prerequisites
+
+Node.js (v16 or higher)
+
+npm or yarn
+
+Installation
+
+Clone the repository
+
+git clone [https://github.com/rocklon0526/greenhouse_scada.git](https://github.com/rocklon0526/greenhouse_scada.git)
+cd greenhouse_scada
+
+
+Install dependencies
+
+npm install
+
+
+Run Development Server
+
+npm run dev
+
+
+Open http://localhost:5173 to view it in the browser.
