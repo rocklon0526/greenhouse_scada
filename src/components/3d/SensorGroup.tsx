@@ -62,36 +62,39 @@ const SensorGroup: React.FC<{ data: SensorData }> = ({ data }) => {
         zIndexRange={[100, 0]}
       >
         <div 
-          className={`flex flex-col items-center gap-1 transition-all duration-200 origin-bottom
-            ${isExpanded ? 'z-50 scale-100' : 'z-0 scale-90'}`}
+          className="relative flex flex-col items-center justify-end" // 使用 relative 以便絕對定位子元素
           style={{ pointerEvents: 'auto', cursor: 'pointer' }} // 內層容器開啟互動
           onClick={handleHtmlClick}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
         >
-          {/* 詳細資訊卡片 (彈出層) */}
+          {/* 詳細資訊卡片 (彈出層) - 改為絕對定位 */}
           <div 
-            className={`overflow-hidden transition-all duration-300 ease-out shadow-2xl backdrop-blur-md border border-slate-500/50 rounded-xl bg-slate-900/95
-              ${isExpanded ? 'max-h-40 opacity-100 mb-2 translate-y-0' : 'max-h-0 opacity-0 translate-y-4'}`}
+            className={`absolute bottom-full mb-2 transition-all duration-300 ease-out origin-bottom
+              ${isExpanded ? 'scale-100 opacity-100 translate-y-0 z-50' : 'scale-50 opacity-0 translate-y-4 pointer-events-none'}`}
             style={{ width: '140px' }}
           >
-            <div className="bg-slate-800/80 px-3 py-1.5 border-b border-slate-700 flex justify-between items-center">
-              <span className="text-[10px] font-bold text-slate-300 tracking-wider">SENSOR</span>
-              <span className="text-[10px] font-mono text-blue-300">{data.id}</span>
+            <div className="overflow-hidden shadow-2xl backdrop-blur-md border border-slate-500/50 rounded-xl bg-slate-900/95">
+                <div className="bg-slate-800/80 px-3 py-1.5 border-b border-slate-700 flex justify-between items-center">
+                <span className="text-[10px] font-bold text-slate-300 tracking-wider">SENSOR</span>
+                <span className="text-[10px] font-mono text-blue-300">{data.id}</span>
+                </div>
+                <div className="p-3 space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Humidity</span>
+                    <span className="font-mono font-bold text-blue-200">{data.avgHum}%</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">CO2</span>
+                    <span className="font-mono font-bold text-gray-200">{data.avgCo2}</span>
+                </div>
+                </div>
             </div>
-            <div className="p-3 space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400">Humidity</span>
-                <span className="font-mono font-bold text-blue-200">{data.avgHum}%</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400">CO2</span>
-                <span className="font-mono font-bold text-gray-200">{data.avgCo2}</span>
-              </div>
-            </div>
+            {/* 小箭頭 */}
+            <div className="w-2 h-2 bg-slate-500/50 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2"></div>
           </div>
 
-          {/* 常駐小標籤 (膠囊狀) */}
+          {/* 常駐小標籤 (膠囊狀) - 保持在一般流動中，作為定位基準 */}
           <div className={`
             flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-lg backdrop-blur-md transition-all duration-300 min-w-[80px] justify-between
             ${isAlarm ? 'bg-red-500/90 border-red-300 text-white animate-pulse' : 

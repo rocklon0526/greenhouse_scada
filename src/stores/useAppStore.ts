@@ -5,15 +5,45 @@ import { api } from '../services/api';
 import { generateMockData, generateInitialDevices } from '../mocks';
 import { DosingTank, RackNutrientTank, Recipe } from '../types/farming';
 import { LayoutConfig } from '../configs/layoutConfig';
+import { Language } from '../i18n/translations';
 
-// Extend the base state to include Farming/Dosing features
+// Extend the base state
 interface ExtendedStore extends StoreState {
   dosingTanks: DosingTank[];
   rackTanks: Record<string, RackNutrientTank>;
   recipes: Recipe[];
+  language: Language;
+  
+  // Selection States
+  selectedDosingTankId: number | null;
+  selectedRackTankId: string | null;
+  isMixerSelected: boolean;
+  
+  // Mixer Data (Added valveOpen and pumpActive)
+  mixerData: {
+    level: number;
+    ph: number;
+    ec: number;
+    status: string;
+    isMixing: boolean;
+    valveOpen: boolean; // 新增
+    pumpActive: boolean; // 新增
+  };
+
   addRecipe: (recipe: Recipe) => void;
   deleteRecipe: (id: string) => void;
+  updateDosingTank: (id: number, data: Partial<DosingTank>) => void;
   simulateFillingLogic: () => void;
+  setLanguage: (lang: Language) => void;
+  
+  // Mixer Control Actions
+  toggleMixerValve: () => void; // 新增
+  toggleMixerPump: () => void; // 新增
+
+  // Selection Actions
+  selectDosingTank: (id: number | null) => void;
+  selectRackTank: (id: string | null) => void;
+  selectMixer: (isSelected: boolean) => void;
 }
 
 export const useAppStore = create<ExtendedStore>((set, get) => ({
@@ -30,35 +60,45 @@ export const useAppStore = create<ExtendedStore>((set, get) => ({
   selectedSensorId: null,
   history: [],
 
-  // --- New Dosing System State ---
   dosingTanks: Array.from({ length: 6 }, (_, i) => ({
     id: i + 1,
     name: `Sol. Tank ${i + 1}`,
     capacity: 1000,
-    currentLevel: 85 - (i * 5), // Mock initial levels
+    currentLevel: 85 - (i * 5),
     ph: 6.0,
     ec: 1.2,
     chemicalType: 'Base'
   })),
   rackTanks: {},
   recipes: [],
+  language: 'zh',
+
+  // --- Selection State ---
+  selectedDosingTankId: null,
+  selectedRackTankId: null,
+  isMixerSelected: false,
+  
+  mixerData: {
+    level: 8500,
+    ph: 5.8,
+    ec: 1.2,
+    status: 'Ready',
+    isMixing: false,
+    valveOpen: false, // 初始關閉
+    pumpActive: false // 初始關閉
+  },
 
   // --- Actions ---
   
-  // Merged initSystem: Initializes Devices, Rack Tanks, and starts the Loop
   initSystem: (layoutConfig: LayoutConfig) => {
-    // 1. Initialize Standard Devices (Fans, etc.)
     set({ devices: generateInitialDevices(layoutConfig) });
 
-    // 2. Initialize Rack Nutrient Tanks (One per rack)
     const initialRackTanks: Record<string, RackNutrientTank> = {};
     layoutConfig.racks.forEach((rack: any) => {
-      // 根據您的需求修改位置：rack.position[2] + (rack.length / 2) + 8.5
-      // 這樣會讓養液桶位於層架後方靠近風扇的位置
       initialRackTanks[rack.id] = {
         rackId: rack.id,
         position: [rack.position[0], 0, rack.position[2] + (rack.length / 2) + 8.5], 
-        level: 2, // Start at Medium level
+        level: 2,
         ph: 5.8,
         ec: 1.5,
         valveOpen: false,
@@ -67,12 +107,9 @@ export const useAppStore = create<ExtendedStore>((set, get) => ({
     });
     set({ rackTanks: initialRackTanks });
 
-    // 3. Define the Data Fetching & Simulation Function
     const fetchData = async () => {
-      // A. Run Simulation Logic (Tank Filling)
       get().simulateFillingLogic();
 
-      // B. Fetch Sensor/Device Data
       const state = get();
       if (APP_CONFIG.USE_MOCK) {
         const newSensors = generateMockData(layoutConfig);
@@ -115,8 +152,7 @@ export const useAppStore = create<ExtendedStore>((set, get) => ({
       }
     };
 
-    // 4. Start Interval
-    fetchData(); // Run once immediately
+    fetchData();
     const interval = setInterval(fetchData, APP_CONFIG.POLLING_INTERVAL || 2000);
     return () => clearInterval(interval);
   },
@@ -126,24 +162,15 @@ export const useAppStore = create<ExtendedStore>((set, get) => ({
       const newRackTanks = { ...state.rackTanks };
       Object.keys(newRackTanks).forEach(key => {
         const tank = newRackTanks[key];
-
-        // Simulate consumption (Level drops randomly if valve closed)
         if (!tank.valveOpen && tank.level > 0 && Math.random() > 0.95) {
           tank.level = (tank.level - 1) as any;
         }
-
-        // LOGIC: If Empty (0), Open Valve & Start Pump
         if (tank.level === 0 && !tank.valveOpen) {
           tank.valveOpen = true;
           tank.pumpActive = true;
         }
-
-        // Simulate Filling
         if (tank.valveOpen) {
-          // 30% chance to increase level per tick
           if (Math.random() > 0.7) tank.level = (tank.level + 1) as any;
-          
-          // Stop when Full (4)
           if (tank.level === 4) {
             tank.valveOpen = false;
             tank.pumpActive = false;
@@ -184,16 +211,32 @@ export const useAppStore = create<ExtendedStore>((set, get) => ({
   },
 
   setSetting: (key: string, value: any) => set((state: ExtendedStore) => ({ settings: { ...state.settings, [key]: value } })),
-  
   toggleRule: (id: number) => set((state: ExtendedStore) => ({ rules: state.rules.map((r: Rule) => r.id === id ? {...r, active: !r.active} : r) })),
-  
   addRule: (newRule: Partial<Rule>) => set((state: ExtendedStore) => ({ rules: [...state.rules, { id: Date.now(), active: true, ...newRule } as Rule] })),
   
-  selectSensor: (id: string | null) => set({ selectedSensorId: id }),
+  selectSensor: (id: string | null) => set({ 
+    selectedSensorId: id, selectedDosingTankId: null, selectedRackTankId: null, isMixerSelected: false 
+  }),
+  selectDosingTank: (id: number | null) => set({ 
+    selectedDosingTankId: id, selectedSensorId: null, selectedRackTankId: null, isMixerSelected: false 
+  }),
+  selectRackTank: (id: string | null) => set({ 
+    selectedRackTankId: id, selectedSensorId: null, selectedDosingTankId: null, isMixerSelected: false 
+  }),
+  selectMixer: (isSelected: boolean) => set({ 
+    isMixerSelected: isSelected, selectedSensorId: null, selectedDosingTankId: null, selectedRackTankId: null 
+  }),
   
-  clearSelection: () => set({ selectedSensorId: null }),
+  clearSelection: () => set({ 
+    selectedSensorId: null, selectedDosingTankId: null, selectedRackTankId: null, isMixerSelected: false 
+  }),
+
+  // Mixer Controls
+  toggleMixerValve: () => set(state => ({ mixerData: { ...state.mixerData, valveOpen: !state.mixerData.valveOpen } })),
+  toggleMixerPump: () => set(state => ({ mixerData: { ...state.mixerData, pumpActive: !state.mixerData.pumpActive } })),
 
   addRecipe: (recipe: Recipe) => set((s: ExtendedStore) => ({ recipes: [...s.recipes, recipe] })),
-  
   deleteRecipe: (id: string) => set((s: ExtendedStore) => ({ recipes: s.recipes.filter((r: Recipe) => r.id !== id) })),
+  updateDosingTank: (id: number, data: Partial<DosingTank>) => set((state) => ({ dosingTanks: state.dosingTanks.map((tank) => tank.id === id ? { ...tank, ...data } : tank)})),
+  setLanguage: (lang: Language) => set({ language: lang }),
 }));

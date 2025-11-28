@@ -4,6 +4,7 @@ import GreenhouseClient from './GreenhouseClient';
 import DashboardPage from './pages/DashboardPage';
 import LogicPage from './pages/LogicPage';
 import FormulaPage from './pages/FormulaPage';
+import DosingConfigPage from './pages/DosingConfigPage';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="logic" element={<LogicPage />} />
           <Route path="formula" element={<FormulaPage />} />
+          <Route path="dosing-config" element={<DosingConfigPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

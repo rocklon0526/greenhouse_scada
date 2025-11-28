@@ -5,9 +5,10 @@ import Card from '../components/ui/Card';
 import { Thermometer, Droplets, Activity, Power, CloudFog, Settings, LucideIcon } from 'lucide-react';
 import { WAREHOUSE_LAYOUT, InfrastructureItem } from '../configs/layoutConfig';
 import DeviceControlModal from '../components/devices/DeviceControlModal';
+import { translations } from '../i18n/translations';
 
-const SimpleLineChart = ({ data, dataKey, color, height = 100 }: { data: any[], dataKey: string, color: string, height?: number }) => {
-    if (!data || data.length < 2) return <div className="h-24 flex items-center justify-center text-slate-600 text-xs">Collecting Data...</div>;
+const SimpleLineChart = ({ data, dataKey, color, height = 100, loadingText }: { data: any[], dataKey: string, color: string, height?: number, loadingText: string }) => {
+    if (!data || data.length < 2) return <div className="h-24 flex items-center justify-center text-slate-600 text-xs">{loadingText}</div>;
     const maxVal = Math.max(...data.map(d => d[dataKey])) + 5;
     const minVal = Math.min(...data.map(d => d[dataKey])) - 5;
     const points = data.map((d, i) => `${(i / (data.length - 1)) * 100},${100 - ((d[dataKey] - minVal) / (maxVal - minVal)) * 100}`).join(' ');
@@ -40,16 +41,20 @@ interface DeviceCardProps {
   onClick: () => void;
   onConfig: () => void;
   color: string;
+  statusText: string;
 }
 
-const DeviceCard: React.FC<DeviceCardProps> = ({ label, id, status, params, onClick, onConfig, color }) => {
+const DeviceCard: React.FC<DeviceCardProps> = ({ label, id, status, params, onClick, onConfig, color, statusText }) => {
   const isActive = status === 'ON';
   return (
     <div className={`relative flex flex-col p-4 rounded-xl border transition-all duration-300 w-full group ${isActive ? `bg-slate-800 border-${color}-500 shadow-lg shadow-${color}-500/10` : 'bg-slate-900/50 border-slate-700 hover:bg-slate-800'}`}>
       <div className="flex justify-between items-center mb-3"><span className="text-[10px] text-slate-500 font-mono">{id}</span><div className={`w-2 h-2 rounded-full ${isActive ? `bg-${color}-500 animate-pulse` : 'bg-slate-600'}`}></div></div>
       <div className="flex items-center gap-3 mb-4">
           <button onClick={onClick} className={`p-3 rounded-full transition-colors duration-300 ${isActive ? `bg-${color}-500 text-white` : 'bg-slate-800 text-slate-500 hover:bg-slate-700'}`}><Power size={20} /></button>
-          <div><div className={`text-sm font-bold uppercase tracking-wider ${isActive ? 'text-white' : 'text-slate-400'}`}>{label}</div><div className={`text-[10px] ${isActive ? `text-${color}-400` : 'text-slate-600'}`}>{isActive ? 'RUNNING' : 'IDLE'}</div></div>
+          <div>
+            <div className={`text-sm font-bold uppercase tracking-wider ${isActive ? 'text-white' : 'text-slate-400'}`}>{label}</div>
+            <div className={`text-[10px] ${isActive ? `text-${color}-400` : 'text-slate-600'}`}>{statusText}</div>
+          </div>
       </div>
       {Object.keys(params).length > 0 && (
         <div className="border-t border-slate-700/50 pt-2 flex justify-between items-center">
@@ -62,39 +67,59 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ label, id, status, params, onCl
 };
 
 const DashboardPage = () => {
-  const { history, devices, toggleDevice, controlDevice } = useAppStore();
+  const { history, devices, toggleDevice, controlDevice, language } = useAppStore();
+  const t = translations[language];
   const latest = history.length > 0 ? history[history.length - 1] : { temp: 0, hum: 0, co2: 400 };
-  // 結合 config 與 state，產生完整物件給 Modal
   const [editingDevice, setEditingDevice] = useState<(InfrastructureItem & DeviceState) | null>(null);
   const { fans, waterWalls } = WAREHOUSE_LAYOUT.infrastructure;
 
   return (
     <div className="h-full overflow-y-auto custom-scrollbar p-2 flex flex-col gap-6 pb-24">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard title="Avg Temp" value={latest.temp.toFixed(1)} unit="°C" icon={Thermometer} trend={2.5} color={{ text: 'text-orange-400' }} />
-        <KpiCard title="Avg Humidity" value={latest.hum.toFixed(0)} unit="%" icon={Droplets} trend={-1.2} color={{ text: 'text-blue-400' }} />
-        <KpiCard title="Avg CO2" value={latest.co2.toFixed(0)} unit="ppm" icon={CloudFog} trend={5.8} color={{ text: 'text-gray-400' }} />
-        <KpiCard title="Active Devices" value={Object.values(devices).filter(d => d.status === 'ON').length.toString()} unit="Units" icon={Activity} color={{ text: 'text-green-400' }} />
+        <KpiCard title={t.avgTemp} value={latest.temp.toFixed(1)} unit="°C" icon={Thermometer} trend={2.5} color={{ text: 'text-orange-400' }} />
+        <KpiCard title={t.avgHum} value={latest.hum.toFixed(0)} unit="%" icon={Droplets} trend={-1.2} color={{ text: 'text-blue-400' }} />
+        <KpiCard title={t.avgCo2} value={latest.co2.toFixed(0)} unit="ppm" icon={CloudFog} trend={5.8} color={{ text: 'text-gray-400' }} />
+        <KpiCard title={t.activeDevices} value={Object.values(devices).filter(d => d.status === 'ON').length.toString()} unit={t.units} icon={Activity} color={{ text: 'text-green-400' }} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card title="Temp Trend"><div className="h-40 flex items-end px-2 pb-2"><SimpleLineChart data={history} dataKey="temp" color="#fb923c" height={120} /></div></Card>
-        <Card title="Humidity Trend"><div className="h-40 flex items-end px-2 pb-2"><SimpleLineChart data={history} dataKey="hum" color="#60a5fa" height={120} /></div></Card>
-        <Card title="CO2 Trend"><div className="h-40 flex items-end px-2 pb-2"><SimpleLineChart data={history} dataKey="co2" color="#9ca3af" height={120} /></div></Card>
+        <Card title={t.tempTrend}><div className="h-40 flex items-end px-2 pb-2"><SimpleLineChart data={history} dataKey="temp" color="#fb923c" height={120} loadingText={t.collectingData} /></div></Card>
+        <Card title={t.humTrend}><div className="h-40 flex items-end px-2 pb-2"><SimpleLineChart data={history} dataKey="hum" color="#60a5fa" height={120} loadingText={t.collectingData} /></div></Card>
+        <Card title={t.co2Trend}><div className="h-40 flex items-end px-2 pb-2"><SimpleLineChart data={history} dataKey="co2" color="#9ca3af" height={120} loadingText={t.collectingData} /></div></Card>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-            <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3 border-b border-slate-700 pb-2 flex justify-between">Water Wall Systems<span className="text-[10px] bg-slate-800 px-2 rounded text-slate-500">{waterWalls.length} Units</span></h3>
+            <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3 border-b border-slate-700 pb-2 flex justify-between">{t.waterWallSys}<span className="text-[10px] bg-slate-800 px-2 rounded text-slate-500">{waterWalls.length} {t.units}</span></h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {waterWalls.map(device => (
-                    <DeviceCard key={device.id} id={device.id} label={device.label} status={devices[device.id]?.status || 'OFF'} params={devices[device.id]?.params || {}} onClick={() => toggleDevice(device.id)} onConfig={() => setEditingDevice({...device, ...devices[device.id]})} color="red" />
+                    <DeviceCard 
+                      key={device.id} 
+                      id={device.id} 
+                      label={device.label} 
+                      status={devices[device.id]?.status || 'OFF'} 
+                      params={devices[device.id]?.params || {}} 
+                      onClick={() => toggleDevice(device.id)} 
+                      onConfig={() => setEditingDevice({...device, ...devices[device.id]})} 
+                      color="red" 
+                      statusText={devices[device.id]?.status === 'ON' ? t.running : t.idle}
+                    />
                 ))}
             </div>
         </div>
         <div>
-            <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3 border-b border-slate-700 pb-2 flex justify-between">Exhaust Fan Systems<span className="text-[10px] bg-slate-800 px-2 rounded text-slate-500">{fans.length} Units</span></h3>
+            <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3 border-b border-slate-700 pb-2 flex justify-between">{t.exhaustFanSys}<span className="text-[10px] bg-slate-800 px-2 rounded text-slate-500">{fans.length} {t.units}</span></h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {fans.map(device => (
-                    <DeviceCard key={device.id} id={device.id} label={device.label} status={devices[device.id]?.status || 'OFF'} params={devices[device.id]?.params || {}} onClick={() => toggleDevice(device.id)} onConfig={() => setEditingDevice({...device, ...devices[device.id]})} color="blue" />
+                    <DeviceCard 
+                      key={device.id} 
+                      id={device.id} 
+                      label={device.label} 
+                      status={devices[device.id]?.status || 'OFF'} 
+                      params={devices[device.id]?.params || {}} 
+                      onClick={() => toggleDevice(device.id)} 
+                      onConfig={() => setEditingDevice({...device, ...devices[device.id]})} 
+                      color="blue" 
+                      statusText={devices[device.id]?.status === 'ON' ? t.running : t.idle}
+                    />
                 ))}
             </div>
         </div>
