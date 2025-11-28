@@ -150,49 +150,48 @@ sequenceDiagram
     participant DB as 資料庫
     participant PLC as PLC (Sensors/IO)
 
-    loop 監控迴圈 (每 2 秒)
-        BE->>PLC: 讀取環境感測器 (溫濕度)
-        PLC-->>BE: 回傳數值 (Temp/Hum)
-        BE->>DB: Insert Sensor History (定時儲存)
-        BE-->>FE: 推送即時狀態 (畫面呈現)
+    Note over FE, PLC: 監控迴圈 (系統每 2 秒執行一次)
+
+    BE->>PLC: 讀取環境感測器 (溫濕度)
+    PLC-->>BE: 回傳數值 (Temp/Hum)
+    BE->>DB: Insert Sensor History (定時儲存)
+    BE-->>FE: 推送即時狀態 (畫面呈現)
+    
+    Note over BE: 1. 判斷自動模式
+    alt 自動模式 = ON
         
-        Note over BE: 1. 判斷自動模式
-        alt 自動模式 = ON
+        alt 系統狀態 = 執行任務中 (Running Task)
+            Note over BE: 倒數計時中... (Wait N mins)
+            BE->>BE: 檢查計時器是否結束
+            opt 計時結束
+                BE->>PLC: 關閉設備 / 回復待機
+                BE->>DB: Insert Log (自動化任務結束)
+                BE->>BE: 狀態設為 Idle
+            end
             
-            alt 系統狀態 = 執行任務中 (Running Task)
-                Note over BE: 倒數計時中... (Wait N mins)
-                BE->>BE: 檢查計時器是否結束
-                opt 計時結束
-                    BE->>PLC: 關閉設備 / 回復待機
-                    BE->>DB: Insert Log (自動化任務結束)
-                    BE->>BE: 狀態設為 Idle
-                end
+        else 系統狀態 = 待機 (Idle)
+            Note over BE: 2. 判斷安全閥值
+            BE->>BE: 檢查 溫度 > TempThreshold OR 濕度 > HumThreshold?
+            
+            opt 超出閥值
+                Note over BE: 3. 執行優先權規則
+                BE->>DB: 查詢啟用中的規則 (Log讀取)
                 
-            else 系統狀態 = 待機 (Idle)
-                Note over BE: 2. 判斷安全閥值
-                BE->>BE: 檢查 溫度 > TempThreshold OR 濕度 > HumThreshold?
-                
-                opt 超出閥值
-                    Note over BE: 3. 執行優先權規則
-                    BE->>DB: 查詢啟用中的規則 (Log讀取)
-                    
-                    loop 逐項判斷規則
-                        alt 規則符合且啟用
-                            Note over BE: 4. 執行對應手段
-                            BE->>PLC: 啟用設備 (風扇/水牆)
-                            BE->>DB: Insert Log (觸發規則: RuleID, Action)
-                            BE->>BE: 設定計時器 (例如 15分鐘)
-                            BE->>BE: 狀態設為 Running Task
-                            break 跳出規則檢查
-                            end
-                        end
+                loop 逐項判斷規則 (按優先序)
+                    alt 規則符合且啟用
+                        Note over BE: 4. 執行對應手段
+                        BE->>PLC: 啟用設備 (風扇/水牆)
+                        BE->>DB: Insert Log (觸發規則: RuleID, Action)
+                        BE->>BE: 設定計時器 (例如 15分鐘)
+                        BE->>BE: 狀態設為 Running Task
+                        Note over BE: 觸發後跳出規則檢查
                     end
                 end
             end
-            
-        else 手動模式
-            Note over BE: 等待使用者手動操作
         end
+        
+    else 手動模式
+        Note over BE: 等待使用者手動操作
     end
 ```
 
