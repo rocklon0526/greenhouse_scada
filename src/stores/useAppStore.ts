@@ -38,6 +38,10 @@ interface ExtendedStore extends StoreState {
   startMixingProcess: (recipeId: string) => Promise<void>;
   startTransferProcess: (targetRackId: string) => Promise<void>;
   
+  // Rule Management
+  reorderRules: (fromIndex: number, toIndex: number) => void;
+  saveRules: () => Promise<void>;
+
   simulatePLCLogic: () => void;
 
   selectDosingTank: (id: number | null) => void;
@@ -262,41 +266,34 @@ const store = create<ExtendedStore>((set: any, get: any) => ({
          newState.mixerData = newMixerData;
       }
 
-      // === 修正部分：傳送與補水邏輯 ===
       const newRackTanks = { ...state.rackTanks };
       let tanksChanged = false;
-      let anyTankStillFilling = false; // 用來追蹤是否還有任何一個桶子正在補水
+      let anyTankStillFilling = false;
 
       Object.keys(newRackTanks).forEach(key => {
         const tank = newRackTanks[key];
         
         if (tank.status === 'FILLING') {
            tanksChanged = true;
-           // 模擬水位上升
            if (tank.level < 4) {
               if (Math.random() > 0.5) {
                  tank.level = Math.min(4, tank.level + 1) as any;
               }
            } 
            
-           // 檢查是否達到滿水位 L4
            if (tank.level === 4) {
               tank.status = 'IDLE';
               tank.valveOpen = false;
               tank.pumpActive = false;
-              // 此桶已完成，不計入 anyTankStillFilling
            } else {
-              // 此桶尚未完成
               anyTankStillFilling = true;
            }
         }
       });
 
-      // 如果有任何桶子狀態改變，更新 rackTanks
       if (tanksChanged) {
           newState.rackTanks = newRackTanks;
           
-          // 如果所有桶子都補滿了 (沒有任何一個還在 FILLING)，則重置 Mixer 狀態
           if (!anyTankStillFilling && state.mixerData.status === 'Transferring') {
               console.log("[PLC] All transfers completed. Resetting Mixer status.");
               newState.mixerData = {
@@ -310,6 +307,28 @@ const store = create<ExtendedStore>((set: any, get: any) => ({
 
       return newState;
     });
+  },
+
+  reorderRules: (fromIndex: number, toIndex: number) => {
+    set((state: any) => {
+      const newRules = [...state.rules];
+      const [movedRule] = newRules.splice(fromIndex, 1);
+      newRules.splice(toIndex, 0, movedRule);
+      return { rules: newRules };
+    });
+  },
+
+  saveRules: async () => {
+    const state = get();
+    if (!APP_CONFIG.USE_MOCK) {
+       const res = await api.updateRules(state.rules);
+       if (!res.success) {
+         alert("Failed to save rules to server!");
+         return;
+       }
+    }
+    alert("Rules saved successfully! (Simulated if using Mock)");
+    console.log("[API] Rules updated:", state.rules);
   },
 
   startMixingProcess: async (recipeId: string) => {
@@ -408,7 +427,6 @@ const store = create<ExtendedStore>((set: any, get: any) => ({
 }));
 
 // 手動定義 Store Hook 的型別，讓 TypeScript 能夠正確推斷
-// 這樣做可以繞過 zustand v3 在 ESM 下的 UseStore 導出問題
 type StoreHook = {
   (): ExtendedStore;
   <U>(selector: (state: ExtendedStore) => U): U;

@@ -3,6 +3,7 @@ import { APP_CONFIG } from '../configs/constants';
 import { DeviceState } from '../types';
 import { LayoutConfig } from '../configs/layoutConfig';
 import { Recipe } from '../types/farming';
+import { Rule } from '../types/rules';
 
 export const api = {
   async fetchStatus(layoutConfig: LayoutConfig) {
@@ -83,6 +84,22 @@ export const api = {
       return { success: true };
     } catch (error) {
       console.error("Transfer Start Error:", error);
+      return { success: false };
+    }
+  },
+
+  // 3. 更新規則 API (儲存優先序與狀態)
+  async updateRules(rules: Rule[]) {
+    try {
+      const response = await fetch(`${APP_CONFIG.API_URL}/rules/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rules })
+      });
+      if (!response.ok) throw new Error('Failed to update rules');
+      return { success: true };
+    } catch (error) {
+      console.error("Rules Update Error:", error);
       return { success: false };
     }
   }
