@@ -1,6 +1,6 @@
 export const APP_CONFIG = {
   USE_MOCK: import.meta.env.VITE_USE_MOCK,
-  API_URL: import.meta.env.VITE_API_URL || "http://localhost:8088/system/webdev/ai_env_control/scada_api",
+  API_URL: import.meta.env.VITE_API_URL || "/api",
   POLLING_INTERVAL: 2000,
   SCENE: {
     CAMERA_ZOOM: 40,

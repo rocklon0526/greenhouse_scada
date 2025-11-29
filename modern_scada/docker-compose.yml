@@ -1,0 +1,70 @@
+services:
+  backend-core:
+    build: ./backend
+    container_name: backend-core
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=scada
+      - DATABASE_URL=postgresql://postgres:password@timeseries-db:5432/scada
+    depends_on:
+      - timeseries-db
+      - plc-sim
+    volumes:
+      - ./backend:/app
+      - backend_data:/app/data
+
+  timeseries-db:
+    image: postgres:15-alpine
+    container_name: timeseries-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=scada
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  plc-sim:
+    build: ./simulator
+    container_name: plc-sim
+    ports:
+      - "5020:502"
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend-core
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@scada.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - timeseries-db
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    restart: always
+
+volumes:
+  postgres_data:
+  backend_data:
+  portainer_data:

@@ -1,0 +1,200 @@
+database:
+  postgres_dsn: "postgresql://postgres:password@timeseries-db:5432/scada"
+  sqlite_path: "data/buffer.db"
+
+plc:
+  host: "plc-sim"
+  port: 502
+  poll_interval: 1.0
+
+security:
+  algorithm: "HS256"
+  access_token_expire_minutes: 30
+
+tags:
+  # --- Weather Station ---
+  - name: "weather_temp"
+    address: 0
+    type: "float"
+    unit: "°C"
+  - name: "weather_hum"
+    address: 2
+    type: "float"
+    unit: "%"
+  - name: "weather_uv"
+    address: 4
+    type: "float"
+    unit: "index"
+
+  # --- Mixer Tank ---
+  - name: "mixer_level"
+    address: 10
+    type: "float"
+    unit: "L"
+  - name: "mixer_ph"
+    address: 12
+    type: "float"
+    unit: "pH"
+  - name: "mixer_ec"
+    address: 14
+    type: "float"
+    unit: "mS/cm"
+  - name: "mixer_valve_open"
+    address: 16
+    type: "bool"  # mapped to float 1.0/0.0 in sim
+    unit: "bool"
+  - name: "mixer_pump_active"
+    address: 18
+    type: "bool"
+    unit: "bool"
+
+  # --- Dosing Tanks (1-6) ---
+  - name: "dosing_1_level"
+    address: 20
+    type: "float"
+    unit: "kg"
+  - name: "dosing_2_level"
+    address: 22
+    type: "float"
+    unit: "kg"
+  - name: "dosing_3_level"
+    address: 24
+    type: "float"
+    unit: "kg"
+  - name: "dosing_4_level"
+    address: 26
+    type: "float"
+    unit: "kg"
+  - name: "dosing_5_level"
+    address: 28
+    type: "float"
+    unit: "kg"
+  - name: "dosing_6_level"
+    address: 30
+    type: "float"
+    unit: "kg"
+
+  # --- Rack Tanks (R-1A, R-1B, R-2A, R-2B) ---
+  # R-1A
+  - name: "rack_R-1A_ph"
+    address: 40
+    type: "float"
+    unit: "pH"
+  - name: "rack_R-1A_ec"
+    address: 42
+    type: "float"
+    unit: "mS/cm"
+  - name: "rack_R-1A_level"
+    address: 44
+    type: "float"
+    unit: "level"
+  - name: "rack_R-1A_valve"
+    address: 46
+    type: "bool"
+    unit: "bool"
+  # R-1B
+  - name: "rack_R-1B_ph"
+    address: 50
+    type: "float"
+    unit: "pH"
+  - name: "rack_R-1B_ec"
+    address: 52
+    type: "float"
+    unit: "mS/cm"
+  - name: "rack_R-1B_level"
+    address: 54
+    type: "float"
+    unit: "level"
+  - name: "rack_R-1B_valve"
+    address: 56
+    type: "bool"
+    unit: "bool"
+  # R-2A
+  - name: "rack_R-2A_ph"
+    address: 60
+    type: "float"
+    unit: "pH"
+  - name: "rack_R-2A_ec"
+    address: 62
+    type: "float"
+    unit: "mS/cm"
+  - name: "rack_R-2A_level"
+    address: 64
+    type: "float"
+    unit: "level"
+  - name: "rack_R-2A_valve"
+    address: 66
+    type: "bool"
+    unit: "bool"
+  # R-2B
+  - name: "rack_R-2B_ph"
+    address: 70
+    type: "float"
+    unit: "pH"
+  - name: "rack_R-2B_ec"
+    address: 72
+    type: "float"
+    unit: "mS/cm"
+  - name: "rack_R-2B_level"
+    address: 74
+    type: "float"
+    unit: "level"
+  - name: "rack_R-2B_valve"
+    address: 76
+    type: "bool"
+    unit: "bool"
+
+  # --- Sensors (Sample for Aisle 1, Point 1) ---
+  # Top
+  - name: "sensor_Aisle-1-P-1_top_temp"
+    address: 100
+    type: "float"
+    unit: "°C"
+  - name: "sensor_Aisle-1-P-1_top_hum"
+    address: 102
+    type: "float"
+    unit: "%"
+  - name: "sensor_Aisle-1-P-1_top_co2"
+    address: 104
+    type: "float"
+    unit: "ppm"
+  # Mid
+  - name: "sensor_Aisle-1-P-1_mid_temp"
+    address: 106
+    type: "float"
+    unit: "°C"
+  - name: "sensor_Aisle-1-P-1_mid_hum"
+    address: 108
+    type: "float"
+    unit: "%"
+  - name: "sensor_Aisle-1-P-1_mid_co2"
+    address: 110
+    type: "float"
+    unit: "ppm"
+  # Bot
+  - name: "sensor_Aisle-1-P-1_bot_temp"
+    address: 112
+    type: "float"
+    unit: "°C"
+  - name: "sensor_Aisle-1-P-1_bot_hum"
+    address: 114
+    type: "float"
+    unit: "%"
+  - name: "sensor_Aisle-1-P-1_bot_co2"
+    address: 116
+    type: "float"
+    unit: "ppm"
+
+alarms:
+  - tag_name: "weather_temp"
+    type: "high"
+    threshold: 40.0
+    message: "Outdoor Temperature High!"
+  - tag_name: "mixer_ph"
+    type: "high"
+    threshold: 8.0
+    message: "Mixer pH High!"
+  - tag_name: "mixer_ph"
+    type: "low"
+    threshold: 4.0
+    message: "Mixer pH Low!"
