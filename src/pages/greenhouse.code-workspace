@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "../../.."
+		},
+		{
+			"path": "../../../../Inductive Automation/Ignition/data/projects/ai_env_control"
+		}
+	],
+	"settings": {}
+}
