@@ -1,258 +1,71 @@
-🌿 Greenhouse OS - Web SCADA System
+# 🌿 Greenhouse OS - 現代化溫室 SCADA 系統
 
-Greenhouse OS 是一個現代化的網頁版 SCADA 系統，專為智慧溫室管理設計。結合即時數據監控、互動式 3D 視覺化以及自動化設備控制。
+Greenhouse OS 是一個專為智慧溫室管理設計的現代化 SCADA 系統。它結合了即時監控、互動式 3D 可視化和自動化控制邏輯，並採用穩健的微服務架構。
 
-🎮 自動化控制流程 (Automation Scenarios)
+## 🎯 專案目標
 
-以下圖表描述了系統的三大核心自動化邏輯。這些流程涵蓋了使用者操作、前端驗證、後端處理、PLC 控制以及資料庫記錄。
+本專案旨在提供一個全方位的溫室管理解決方案，主要目標包括：
 
-一、調配桶混合流程 (Mixing Process)
+1.  **即時環境監控**：透過部署於溫室各處的感測器，即時採集溫度、濕度、CO2 濃度等關鍵數據，並計算區域平均值以供決策參考。
+2.  **直觀的 3D 可視化**：利用 Web 3D 技術 (Three.js)，將溫室現場狀況以數位孿生 (Digital Twin) 的方式呈現，讓管理者能直觀地掌握設備狀態與環境分佈。
+3.  **精確的設備控制**：提供對攪拌桶 (Mixer)、營養液桶 (Rack Tank)、閥門與幫浦的遠端控制功能，並支援自動化生產流程（如自動補水、配方混合）。
+4.  **數據驅動決策**：整合戶外氣象站數據與歷史生產數據，協助優化種植策略。
 
-情境描述：
-此流程負責根據使用者選擇的配方，控制 PLC 進行精準的原料混合。
+## 🚀 快速啟動 (Quick Start)
 
-使用者在前端選擇配方，並輸入目標水量。
+### 前置需求
+*   Docker & Docker Compose
+*   Git
 
-前端預檢：系統自動計算所需各原料重量，並比對當前原料桶存量。若任一原料不足，直接在前端阻擋並警示，不發送請求。
+### 安裝與啟動
 
-後端處理：若庫存充足，前端發送請求至後端。後端將參數寫入 PLC 並驗證。
+1.  **複製專案 (Clone Repository)**
+    ```bash
+    git clone <repository_url>
+    cd greenhouse-scada
+    ```
 
-製程執行：PLC 啟動混合設備（閥門/攪拌器）。後端定期輪詢 PLC 狀態並寫入資料庫（即時數據）。
+2.  **啟動系統 (Start System)**
+    進入 `modern_scada` 目錄並啟動 Docker 容器：
+    ```bash
+    cd modern_scada
+    docker-compose up -d --build
+    ```
 
-扣料與警報：製程結束後，系統自動扣除原料桶帳面庫存。若更新後的庫存低於安全閥值 (20%)，系統會觸發低水位警報並記錄。
-```mermaid
-sequenceDiagram
-    autonumber
-    participant User as 使用者
-    participant FE as 前端 (React)
-    participant BE as 後端 API
-    participant DB as 資料庫
-    participant PLC as PLC (Modbus)
-    participant DosingTanks as 原料桶槽
+3.  **訪問應用程式**
+    *   **儀表板 (Dashboard)**: [http://localhost:5173](http://localhost:5173) (開發模式) 或 [http://localhost](http://localhost) (生產模式)
+    *   **API 文件**: [http://localhost:8000/docs](http://localhost:8000/docs)
+    *   **預設登入帳號**: `admin` / `admin123`
 
-    User->>FE: 1. 選擇配方 (成分比例 & 水量)
-    FE->>FE: 計算各成分重量 (轉換 %)
-    
-    rect rgb(255, 250, 240)
-        Note over FE, DosingTanks: 預先檢查庫存
-        FE->>FE: 檢查各原料桶液位是否足夠
-        alt 液位不足
-            FE-->>User: ⚠️ 警示: 原料不足，無法開始
-        else 液位充足
-            FE->>BE: POST /api/mix (配方參數)
-            BE->>PLC: Write Registers (設定配方參數)
-            BE->>PLC: Read Registers (驗證配方是否寫入成功)
-            
-            alt 驗證成功
-                BE->>PLC: Write Coil (啟動製程訊號)
-                BE->>DB: Insert Log (製程開始, RecipeID)
-                BE-->>FE: 回覆: 開始混合
-                
-                loop 監控製程
-                    PLC->>PLC: 控制閥門/攪拌器
-                    FE->>BE: Polling Status
-                    BE->>PLC: Read Status
-                    BE-->>FE: 更新混合進度/狀態
-                    BE->>DB: 記錄即時製程數據 (每分鐘)
-                end
+## 📚 詳細文件 (Documentation)
 
-                rect rgb(255, 240, 240)
-                    Note over PLC, DosingTanks: 製程結束後自動扣料
-                    PLC->>DosingTanks: 扣除各成分用量
-                    PLC->>PLC: 檢查剩餘液位
-                    
-                    opt 液位 < 閥值 (20%)
-                        PLC->>BE: 發送低液位警報
-                        BE->>DB: Insert Log (警報: 原料不足)
-                        BE->>FE: 顯示紅燈警示/警報通知
-                    end
-                end
-                
-                BE->>DB: Insert Log (製程結束, 產出量)
+本專案包含完整的技術文件，位於 `modern_scada/` 目錄下：
 
-            else 驗證失敗
-                BE-->>FE: 回覆: 設定失敗，請重試
-            end
-        end
-    end
-```
+*   **[使用者手冊 (User Manual)](modern_scada/user_manual.md)**:
+    *   系統登入與介面導覽
+    *   3D 視圖操作與數據查看
+    *   設備控制與生產流程操作
+*   **[開發者手冊 (Developer Manual)](modern_scada/developer_manual.md)**:
+    *   系統架構與微服務說明
+    *   本地開發環境建置 (Frontend/Backend)
+    *   測試指南 (E2E Test) 與除錯技巧
+*   **[維運者手冊 (Operations Manual)](modern_scada/operations_manual.md)**:
+    *   Docker 容器部署與管理
+    *   系統參數設定 (`config.yaml`)
+    *   資料庫備份與還原
+*   **[系統規格書 (System Specification)](modern_scada/system_spec.md)**:
+    *   專案目錄結構詳解
+    *   核心資料流 (Data Flow) 與 Modbus 通訊邏輯
+    *   資料庫 Schema 設計
 
-二、調配桶傳送至養液桶 (Transfer Logic)
+## 🏗 系統架構
 
-情境描述：
-此流程負責將調配好的養液傳送至指定的層架養液桶（Rack Tank）。
+本系統由以下 Docker 服務組成：
+*   **frontend**: React + TypeScript + Vite (負責 UI 與 3D 渲染)
+*   **backend-core**: FastAPI + Python (負責 API、WebSocket 與邏輯控制)
+*   **timeseries-db**: PostgreSQL (負責儲存歷史數據)
+*   **plc-sim**: Modbus TCP Simulator (模擬 PLC 硬體行為)
 
-使用者點擊「傳送養液」按鈕。
+## 🛡 版權聲明
 
-前端防呆：檢查目標養液桶的當前水位。若水位非低位 (L1)，則視為還有殘留液體，禁止自動補水以防溢出，並提示使用者手動排水。
-
-任務啟動：若條件符合，後端發送指令給 PLC，開啟主閥、目標閥並啟動幫浦。
-
-自動補水：PLC 監控目標桶的浮球液位。當液位到達滿水位 (L4) 時，PLC 自動關閉幫浦與閥門，並回報任務完成。
-```mermaid
-sequenceDiagram
-    autonumber
-    participant User as 使用者
-    participant FE as 前端 (React)
-    participant BE as 後端 API
-    participant DB as 資料庫
-    participant PLC as PLC
-    participant Tank as 養液桶感測器
-
-    User->>FE: 點擊「傳送養液」至指定桶槽
-    FE->>FE: 檢查目標桶槽水位狀態
-    
-    alt 水位 != L1 (非低水位)
-        FE-->>User: ⚠️ 警示: 請先手動排水至 L1
-    else 水位 == L1 (符合條件)
-        FE->>BE: POST /api/transfer (Source, Target)
-        BE->>PLC: 開啟主閥 & 目標桶閥門
-        BE->>PLC: 啟動幫浦 (Pump ON)
-        BE->>DB: Insert Log (傳送任務開始, TargetID)
-        BE-->>FE: 任務開始
-        
-        loop 自動補水監控
-            PLC->>Tank: 讀取浮球液位
-            Tank-->>PLC: 回傳液位 (L1...L4)
-            
-            opt 液位到達 L4 (滿水位)
-                PLC->>PLC: 關閉幫浦 & 閥門
-                PLC->>BE: 回報任務完成
-                BE->>DB: Insert Log (傳送任務完成)
-            end
-        end
-        BE-->>FE: 更新狀態: 閒置 (Idle)
-    end
-```
-
-三、環境控制自動化 (Environmental Control)
-
-情境描述：
-系統全天候監控溫室環境，並根據設定的邏輯自動調節設備。
-
-監控迴圈：後端定期讀取感測器數值，並寫入資料庫作為歷史紀錄。
-
-模式判斷：檢查系統是否處於「自動模式 (AUTO)」。若為手動模式則不介入。
-
-閥值檢查：若在自動模式且系統閒置，檢查溫度或濕度是否超出設定的安全閥值。
-
-規則執行：若超出閥值，系統根據優先權查詢啟用的規則。若找到符合的規則，則執行對應動作（如開啟風扇）。
-
-任務計時：設備啟動後會進入「任務執行中」狀態並倒數計時（例如 15 分鐘）。在此期間系統不會重複觸發規則。
-
-任務結束：倒數結束後，系統自動關閉設備，寫入任務結束紀錄，並回到待機監控狀態。
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant FE as 前端 (React)
-    participant BE as 後端 (Logic Engine)
-    participant DB as 資料庫
-    participant PLC as PLC (Sensors/IO)
-
-    Note over FE, PLC: 監控迴圈 (系統每 2 秒執行一次)
-
-    BE->>PLC: 讀取環境感測器 (溫濕度)
-    PLC-->>BE: 回傳數值 (Temp/Hum)
-    BE->>DB: Insert Sensor History (定時儲存)
-    BE-->>FE: 推送即時狀態 (畫面呈現)
-    
-    Note over BE: 1. 判斷自動模式
-    alt 自動模式 = ON
-        
-        alt 系統狀態 = 執行任務中 (Running Task)
-            Note over BE: 倒數計時中... (Wait N mins)
-            BE->>BE: 檢查計時器是否結束
-            opt 計時結束
-                BE->>PLC: 關閉設備 / 回復待機
-                BE->>DB: Insert Log (自動化任務結束)
-                BE->>BE: 狀態設為 Idle
-            end
-            
-        else 系統狀態 = 待機 (Idle)
-            Note over BE: 2. 判斷安全閥值
-            BE->>BE: 檢查 溫度 > TempThreshold OR 濕度 > HumThreshold?
-            
-            opt 超出閥值
-                Note over BE: 3. 執行優先權規則
-                BE->>DB: 查詢啟用中的規則 (Log讀取)
-                
-                loop 逐項判斷規則 (按優先序)
-                    alt 規則符合且啟用
-                        Note over BE: 4. 執行對應手段
-                        BE->>PLC: 啟用設備 (風扇/水牆)
-                        BE->>DB: Insert Log (觸發規則: RuleID, Action)
-                        BE->>BE: 設定計時器 (例如 15分鐘)
-                        BE->>BE: 狀態設為 Running Task
-                        Note over BE: 觸發後跳出規則檢查
-                    end
-                end
-            end
-        end
-        
-    else 手動模式
-        Note over BE: 等待使用者手動操作
-    end
-```
-
-🧪 功能測試指南 (Testing Guide)
-
-由於系統邏輯較為複雜，前端已實作對應的按鈕與設定介面供測試使用：
-
-測試「混合流程」:
-
-    進入 配方管理 (Formulas) 頁面。
-
-    在任意配方卡片上點擊 「Start Mix」 按鈕。
-
-    觀察 3D 視圖中的主調配桶 (Mixer) 狀態變為 Mixing，進度條開始跑動，完成後會自動扣除原料桶液位。
-
-測試「傳送/補水流程」:
-
-    進入 3D 監控 (Monitor) 或 Dashboard。
-
-    點擊任意 層架 (Rack) 或其養液桶。
-
-    在右側彈出的詳細資訊面板中，若水位為 L1，會顯示 「Start Refill」 按鈕。
-
-    點擊後，觀察 3D 視圖中的管線變色，且目標桶水位逐漸上升至 L4。
-
-測試「環境控制」:
-
-    進入 自動化邏輯 (Automation Logic) 頁面。
-
-    調整 「溫度閥值」 或新增的 「濕度閥值」。
-
-    確保系統處於 AUTO 模式。
-
-    若模擬數據超出設定值，Dashboard 上的風扇會自動開啟，並進入倒數計時狀態。
-
-🚀 Getting Started
-
-Follow these steps to set up the project locally.
-
-Prerequisites
-
-Node.js (v16 or higher)
-
-npm or yarn
-
-Installation
-
-Clone the repository
-
-git clone [https://github.com/rocklon0526/greenhouse_scada.git](https://github.com/rocklon0526/greenhouse_scada.git)
-cd greenhouse_scada
-
-
-Install dependencies
-
-npm install
-
-
-Run Development Server
-
-npm run dev
-
-
-Open http://localhost:5173 to view it in the browser.
+Private Project. All rights reserved.
