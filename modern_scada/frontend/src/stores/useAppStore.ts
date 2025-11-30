@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { StoreState, DeviceState, Rule } from '../types';
 import { APP_CONFIG } from '../configs/constants';
-import { api } from '../services/api';
+import { api, mapApiDataToState } from '../services/api';
 import { generateMockData, generateInitialDevices } from '../mocks';
 import { DosingTank, RackNutrientTank, Recipe, MixerState } from '../types/farming';
 import { LayoutConfig } from '../configs/layoutConfig';
@@ -14,11 +14,13 @@ interface ExtendedStore extends StoreState {
   rackTanks: Record<string, RackNutrientTank>;
   recipes: Recipe[];
   language: Language;
-  
+  userRole: string | null;
+  userName: string | null;
+
   selectedDosingTankId: number | null;
   selectedRackTankId: string | null;
   isMixerSelected: boolean;
-  
+
   mixerData: MixerState;
 
   envControl: {
@@ -31,13 +33,15 @@ interface ExtendedStore extends StoreState {
   deleteRecipe: (id: string) => void;
   updateDosingTank: (id: number, data: Partial<DosingTank>) => void;
   setLanguage: (lang: Language) => void;
-  
+  setUserRole: (role: string) => void;
+  setUserName: (name: string) => void;
+
   toggleMixerValve: () => void;
   toggleMixerPump: () => void;
 
   startMixingProcess: (recipeId: string) => Promise<void>;
   startTransferProcess: (targetRackId: string) => Promise<void>;
-  
+
   // Rule Management
   reorderRules: (fromIndex: number, toIndex: number) => void;
   saveRules: () => Promise<void>;
@@ -47,8 +51,17 @@ interface ExtendedStore extends StoreState {
   selectDosingTank: (id: number | null) => void;
   selectRackTank: (id: string | null) => void;
   selectMixer: (isSelected: boolean) => void;
-  
+
   clearSelection: () => void;
+
+  updateFromWebSocket: (data: any, layoutConfig: LayoutConfig) => void;
+
+  controlDevice: (deviceId: string, command: Partial<DeviceState>) => Promise<void>;
+  toggleDevice: (deviceId: string) => void;
+  setSetting: (key: string, value: any) => void;
+  toggleRule: (id: number) => void;
+  addRule: (newRule: Partial<Rule>) => void;
+  selectSensor: (id: string | null) => void;
 }
 
 // 建立 Store (內部使用 any 規避檢查)
@@ -78,11 +91,13 @@ const store = create<ExtendedStore>((set: any, get: any) => ({
   rackTanks: {},
   recipes: [],
   language: 'zh',
+  userRole: localStorage.getItem('role') || null,
+  userName: localStorage.getItem('username') || null,
 
   selectedDosingTankId: null,
   selectedRackTankId: null,
   isMixerSelected: false,
-  
+
   mixerData: {
     level: 8500,
     ph: 5.8,
@@ -99,7 +114,7 @@ const store = create<ExtendedStore>((set: any, get: any) => ({
     timer: 0,
     activeRuleId: null
   },
-  
+
   initSystem: (layoutConfig: LayoutConfig) => {
     set({ devices: generateInitialDevices(layoutConfig) });
 
@@ -107,7 +122,7 @@ const store = create<ExtendedStore>((set: any, get: any) => ({
     layoutConfig.racks.forEach((rack: any) => {
       initialRackTanks[rack.id] = {
         rackId: rack.id,
-        position: [rack.position[0], 0, rack.position[2] + (rack.length / 2) + 8.5], 
+        position: [rack.position[0], 0, rack.position[2] + (rack.length / 2) + 12],
         level: 1,
         ph: 5.8,
         ec: 1.5,
@@ -146,6 +161,7 @@ const store = create<ExtendedStore>((set: any, get: any) => ({
           }
         });
       } else {
+        // Initial fetch via API, subsequent updates via WebSocket
         const result = await api.fetchStatus(layoutConfig);
         if (result.status === 'success' && result.data) {
           const now = new Date();
@@ -166,104 +182,124 @@ const store = create<ExtendedStore>((set: any, get: any) => ({
     };
 
     fetchData();
-    const interval = setInterval(fetchData, APP_CONFIG.POLLING_INTERVAL || 2000);
-    return () => clearInterval(interval);
+    // Polling is disabled if WebSocket is used, but we keep it for Mock mode or fallback
+    if (APP_CONFIG.USE_MOCK) {
+      const interval = setInterval(fetchData, APP_CONFIG.POLLING_INTERVAL || 2000);
+      return () => clearInterval(interval);
+    }
+    // For real mode, we rely on WebSocket, but initial fetch is done above.
+    return () => { };
+  },
+
+  updateFromWebSocket: (data: any, layoutConfig: LayoutConfig) => {
+    const state = get();
+    const mapped = mapApiDataToState(data, layoutConfig);
+    set({
+      connectionStatus: 'connected',
+      lastUpdate: new Date(),
+      sensors: mapped.sensors,
+      devices: mapped.devices,
+      weatherStation: mapped.weatherStation,
+      history: [...state.history, mapped.history].slice(-20),
+      ...(mapped.mixer && { mixerData: mapped.mixer }),
+      ...(mapped.rackTanks && { rackTanks: mapped.rackTanks }),
+    });
   },
 
   simulatePLCLogic: () => {
     set((state: any) => {
       const newState: any = {};
-      
+
       if (state.settings.autoMode) {
         if (state.envControl.status === 'RUNNING') {
-            const newTimer = state.envControl.timer - 1;
-            if (newTimer <= 0) {
+          const newTimer = state.envControl.timer - 1;
+          if (newTimer <= 0) {
+            const fanKeys = Object.keys(state.devices).filter(k => k.startsWith('fan'));
+            fanKeys.forEach(k => {
+              if (state.devices[k].status === 'ON') {
+                state.devices[k].status = 'OFF';
+                state.devices[k].lastChanged = Date.now();
+              }
+            });
+            newState.envControl = { status: 'IDLE', timer: 0, activeRuleId: null };
+            newState.devices = { ...state.devices };
+          } else {
+            newState.envControl = { ...state.envControl, timer: newTimer };
+          }
+        }
+        else {
+          let currentTemp = 0;
+          let currentHum = 0;
+          if (state.sensors.length > 0) {
+            currentTemp = state.sensors.reduce((acc: number, s: any) => acc + s.avgTemp, 0) / state.sensors.length;
+            currentHum = state.sensors.reduce((acc: number, s: any) => acc + s.avgHum, 0) / state.sensors.length;
+          }
+
+          const isHighTemp = currentTemp > state.settings.tempThreshold;
+          const isHighHum = currentHum > state.settings.humThreshold;
+
+          if (isHighTemp || isHighHum) {
+            const matchedRule = state.rules.find((rule: Rule) => {
+              if (!rule.active) return false;
+              if (isHighTemp && rule.condition.includes('Temp')) return true;
+              if (isHighHum && rule.condition.includes('Hum')) return true;
+              return false;
+            });
+
+            if (matchedRule) {
+              if (matchedRule.action.includes('Fans ON')) {
                 const fanKeys = Object.keys(state.devices).filter(k => k.startsWith('fan'));
                 fanKeys.forEach(k => {
-                    if (state.devices[k].status === 'ON') {
-                        state.devices[k].status = 'OFF';
-                        state.devices[k].lastChanged = Date.now();
-                    }
+                  state.devices[k].status = 'ON';
+                  state.devices[k].lastChanged = Date.now();
                 });
-                newState.envControl = { status: 'IDLE', timer: 0, activeRuleId: null };
-                newState.devices = { ...state.devices }; 
-            } else {
-                newState.envControl = { ...state.envControl, timer: newTimer };
+              }
+              newState.envControl = {
+                status: 'RUNNING',
+                timer: 5,
+                activeRuleId: matchedRule.id
+              };
+              newState.devices = { ...state.devices };
             }
-        } 
-        else {
-            let currentTemp = 0;
-            let currentHum = 0;
-            if (state.sensors.length > 0) {
-                currentTemp = state.sensors.reduce((acc: number, s: any) => acc + s.avgTemp, 0) / state.sensors.length;
-                currentHum = state.sensors.reduce((acc: number, s: any) => acc + s.avgHum, 0) / state.sensors.length;
-            }
-
-            const isHighTemp = currentTemp > state.settings.tempThreshold;
-            const isHighHum = currentHum > state.settings.humThreshold;
-
-            if (isHighTemp || isHighHum) {
-                const matchedRule = state.rules.find((rule: Rule) => {
-                    if (!rule.active) return false;
-                    if (isHighTemp && rule.condition.includes('Temp')) return true;
-                    if (isHighHum && rule.condition.includes('Hum')) return true;
-                    return false;
-                });
-
-                if (matchedRule) {
-                    if (matchedRule.action.includes('Fans ON')) {
-                        const fanKeys = Object.keys(state.devices).filter(k => k.startsWith('fan'));
-                        fanKeys.forEach(k => {
-                            state.devices[k].status = 'ON';
-                            state.devices[k].lastChanged = Date.now();
-                        });
-                    }
-                    newState.envControl = {
-                        status: 'RUNNING',
-                        timer: 5, 
-                        activeRuleId: matchedRule.id
-                    };
-                    newState.devices = { ...state.devices };
-                }
-            }
+          }
         }
       } else {
-          if (state.envControl.status !== 'IDLE') {
-              newState.envControl = { status: 'IDLE', timer: 0, activeRuleId: null };
-          }
+        if (state.envControl.status !== 'IDLE') {
+          newState.envControl = { status: 'IDLE', timer: 0, activeRuleId: null };
+        }
       }
 
       const newMixerData = { ...state.mixerData };
       if (newMixerData.status === 'Mixing') {
-         if ((newMixerData.progress || 0) < 100) {
-            newMixerData.progress = (newMixerData.progress || 0) + 10; 
-            newMixerData.ec = +(newMixerData.ec + (Math.random() * 0.1 - 0.05)).toFixed(2);
-         } else {
-            newMixerData.status = 'Ready';
-            newMixerData.isMixing = false;
-            newMixerData.progress = 0;
+        if ((newMixerData.progress || 0) < 100) {
+          newMixerData.progress = (newMixerData.progress || 0) + 10;
+          newMixerData.ec = +(newMixerData.ec + (Math.random() * 0.1 - 0.05)).toFixed(2);
+        } else {
+          newMixerData.status = 'Ready';
+          newMixerData.isMixing = false;
+          newMixerData.progress = 0;
 
-            if (newMixerData.currentRecipeId) {
-                const recipe = state.recipes.find((r: Recipe) => r.id === newMixerData.currentRecipeId);
-                if (recipe) {
-                    const updatedTanks = state.dosingTanks.map((tank: DosingTank) => {
-                        const ingredient = recipe.ingredients.find((i: any) => i.dosingTankId === tank.id);
-                        if (ingredient) {
-                            const deductLiters = ingredient.weight / 1000;
-                            const deductPercent = (deductLiters / tank.capacity) * 100;
-                            let newLevel = Math.max(0, tank.currentLevel - deductPercent);
-                            if (newLevel < 20) {
-                                console.warn(`⚠️ ALARM: Tank ${tank.id} (${tank.name}) level is low! (${newLevel.toFixed(1)}%)`);
-                            }
-                            return { ...tank, currentLevel: parseFloat(newLevel.toFixed(1)) };
-                        }
-                        return tank;
-                    });
-                    newState.dosingTanks = updatedTanks;
+          if (newMixerData.currentRecipeId) {
+            const recipe = state.recipes.find((r: Recipe) => r.id === newMixerData.currentRecipeId);
+            if (recipe) {
+              const updatedTanks = state.dosingTanks.map((tank: DosingTank) => {
+                const ingredient = recipe.ingredients.find((i: any) => i.dosingTankId === tank.id);
+                if (ingredient) {
+                  const deductLiters = ingredient.weight / 1000;
+                  const deductPercent = (deductLiters / tank.capacity) * 100;
+                  let newLevel = Math.max(0, tank.currentLevel - deductPercent);
+                  if (newLevel < 20) {
+                    console.warn(`⚠️ ALARM: Tank ${tank.id} (${tank.name}) level is low! (${newLevel.toFixed(1)}%)`);
+                  }
+                  return { ...tank, currentLevel: parseFloat(newLevel.toFixed(1)) };
                 }
+                return tank;
+              });
+              newState.dosingTanks = updatedTanks;
             }
-         }
-         newState.mixerData = newMixerData;
+          }
+        }
+        newState.mixerData = newMixerData;
       }
 
       const newRackTanks = { ...state.rackTanks };
@@ -272,37 +308,37 @@ const store = create<ExtendedStore>((set: any, get: any) => ({
 
       Object.keys(newRackTanks).forEach(key => {
         const tank = newRackTanks[key];
-        
+
         if (tank.status === 'FILLING') {
-           tanksChanged = true;
-           if (tank.level < 4) {
-              if (Math.random() > 0.5) {
-                 tank.level = Math.min(4, tank.level + 1) as any;
-              }
-           } 
-           
-           if (tank.level === 4) {
-              tank.status = 'IDLE';
-              tank.valveOpen = false;
-              tank.pumpActive = false;
-           } else {
-              anyTankStillFilling = true;
-           }
+          tanksChanged = true;
+          if (tank.level < 4) {
+            if (Math.random() > 0.5) {
+              tank.level = Math.min(4, tank.level + 1) as any;
+            }
+          }
+
+          if (tank.level === 4) {
+            tank.status = 'IDLE';
+            tank.valveOpen = false;
+            tank.pumpActive = false;
+          } else {
+            anyTankStillFilling = true;
+          }
         }
       });
 
       if (tanksChanged) {
-          newState.rackTanks = newRackTanks;
-          
-          if (!anyTankStillFilling && state.mixerData.status === 'Transferring') {
-              console.log("[PLC] All transfers completed. Resetting Mixer status.");
-              newState.mixerData = {
-                  ...state.mixerData,
-                  status: 'Ready',
-                  valveOpen: false,
-                  pumpActive: false
-              };
-          }
+        newState.rackTanks = newRackTanks;
+
+        if (!anyTankStillFilling && state.mixerData.status === 'Transferring') {
+          console.log("[PLC] All transfers completed. Resetting Mixer status.");
+          newState.mixerData = {
+            ...state.mixerData,
+            status: 'Ready',
+            valveOpen: false,
+            pumpActive: false
+          };
+        }
       }
 
       return newState;
@@ -321,11 +357,11 @@ const store = create<ExtendedStore>((set: any, get: any) => ({
   saveRules: async () => {
     const state = get();
     if (!APP_CONFIG.USE_MOCK) {
-       const res = await api.updateRules(state.rules);
-       if (!res.success) {
-         alert("Failed to save rules to server!");
-         return;
-       }
+      const res = await api.updateRules(state.rules);
+      if (!res.success) {
+        alert("Failed to save rules to server!");
+        return;
+      }
     }
     alert("Rules saved successfully! (Simulated if using Mock)");
     console.log("[API] Rules updated:", state.rules);
@@ -339,24 +375,24 @@ const store = create<ExtendedStore>((set: any, get: any) => ({
 
     const insufficientIngredients: string[] = [];
     recipe.ingredients.forEach((ing: any) => {
-        const tank = state.dosingTanks.find((t: any) => t.id === ing.dosingTankId);
-        if (tank) {
-            const requiredLiters = ing.weight / 1000;
-            const requiredPercent = (requiredLiters / tank.capacity) * 100;
-            if (tank.currentLevel < requiredPercent) {
-                insufficientIngredients.push(`${tank.name} (需要: ${requiredPercent.toFixed(1)}%, 現有: ${tank.currentLevel}%)`);
-            }
+      const tank = state.dosingTanks.find((t: any) => t.id === ing.dosingTankId);
+      if (tank) {
+        const requiredLiters = ing.weight / 1000;
+        const requiredPercent = (requiredLiters / tank.capacity) * 100;
+        if (tank.currentLevel < requiredPercent) {
+          insufficientIngredients.push(`${tank.name} (需要: ${requiredPercent.toFixed(1)}%, 現有: ${tank.currentLevel}%)`);
         }
+      }
     });
 
     if (insufficientIngredients.length > 0) {
-        alert(`⚠️ 無法開始製程！以下原料不足：\n${insufficientIngredients.join('\n')}`);
-        return;
+      alert(`⚠️ 無法開始製程！以下原料不足：\n${insufficientIngredients.join('\n')}`);
+      return;
     }
 
     if (!APP_CONFIG.USE_MOCK) {
-       const res = await api.startMixing(recipe);
-       if (!res.success) return;
+      const res = await api.startMixing(recipe);
+      if (!res.success) return;
     }
 
     set((s: any) => ({
@@ -374,8 +410,8 @@ const store = create<ExtendedStore>((set: any, get: any) => ({
       return;
     }
     if (!APP_CONFIG.USE_MOCK) {
-       const res = await api.startTransfer(targetRackId);
-       if (!res.success) return;
+      const res = await api.startTransfer(targetRackId);
+      if (!res.success) return;
     }
     set((s: any) => ({
       mixerData: { ...s.mixerData, status: 'Transferring', pumpActive: true, valveOpen: true },
@@ -407,14 +443,14 @@ const store = create<ExtendedStore>((set: any, get: any) => ({
   },
 
   setSetting: (key: string, value: any) => set((state: ExtendedStore) => ({ settings: { ...state.settings, [key]: value } })),
-  toggleRule: (id: number) => set((state: ExtendedStore) => ({ rules: state.rules.map((r: Rule) => r.id === id ? {...r, active: !r.active} : r) })),
+  toggleRule: (id: number) => set((state: ExtendedStore) => ({ rules: state.rules.map((r: Rule) => r.id === id ? { ...r, active: !r.active } : r) })),
   addRule: (newRule: Partial<Rule>) => set((state: ExtendedStore) => ({ rules: [...state.rules, { id: Date.now(), active: true, ...newRule } as Rule] })),
-  
+
   selectSensor: (id: string | null) => set({ selectedSensorId: id, selectedDosingTankId: null, selectedRackTankId: null, isMixerSelected: false }),
   selectDosingTank: (id: number | null) => set({ selectedDosingTankId: id, selectedSensorId: null, selectedRackTankId: null, isMixerSelected: false }),
   selectRackTank: (id: string | null) => set({ selectedRackTankId: id, selectedSensorId: null, selectedDosingTankId: null, isMixerSelected: false }),
   selectMixer: (isSelected: boolean) => set({ isMixerSelected: isSelected, selectedSensorId: null, selectedDosingTankId: null, selectedRackTankId: null }),
-  
+
   clearSelection: () => set({ selectedSensorId: null, selectedDosingTankId: null, selectedRackTankId: null, isMixerSelected: false }),
 
   toggleMixerValve: () => set((state: any) => ({ mixerData: { ...state.mixerData, valveOpen: !state.mixerData.valveOpen } })),
@@ -422,8 +458,10 @@ const store = create<ExtendedStore>((set: any, get: any) => ({
 
   addRecipe: (recipe: Recipe) => set((s: ExtendedStore) => ({ recipes: [...s.recipes, recipe] })),
   deleteRecipe: (id: string) => set((s: ExtendedStore) => ({ recipes: s.recipes.filter((r: Recipe) => r.id !== id) })),
-  updateDosingTank: (id: number, data: Partial<DosingTank>) => set((state: any) => ({ dosingTanks: state.dosingTanks.map((tank: any) => tank.id === id ? { ...tank, ...data } : tank)})),
+  updateDosingTank: (id: number, data: Partial<DosingTank>) => set((state: any) => ({ dosingTanks: state.dosingTanks.map((tank: any) => tank.id === id ? { ...tank, ...data } : tank) })),
   setLanguage: (lang: Language) => set({ language: lang }),
+  setUserRole: (role: string) => set({ userRole: role }),
+  setUserName: (name: string) => set({ userName: name }),
 }));
 
 // 手動定義 Store Hook 的型別，讓 TypeScript 能夠正確推斷

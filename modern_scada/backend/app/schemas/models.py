@@ -10,9 +10,20 @@ class TokenData(BaseModel):
     username: Optional[str] = None
     role: Optional[str] = None
 
-class User(BaseModel):
+class UserBase(BaseModel):
     username: str
     role: str
+
+class UserCreate(UserBase):
+    password: str
+
+class UserUpdate(BaseModel):
+    role: Optional[str] = None
+    password: Optional[str] = None
+
+class User(UserBase):
+    id: Optional[int] = None
+    created_at: Optional[datetime] = None
 
 class UserInDB(User):
     hashed_password: str
@@ -35,3 +46,4 @@ class Alarm(BaseModel):
 class PLCWrite(BaseModel):
     address: int
     value: float
+    connection_name: Optional[str] = None

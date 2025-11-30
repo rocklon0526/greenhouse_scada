@@ -1,111 +1,23 @@
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 from app.services.event_processor import EventProcessor
 from app.config import settings
 from pymodbus.client import AsyncModbusTcpClient
+# from pymodbus.payload import BinaryPayloadDecoder # Removed due to version issues
+# from pymodbus.constants import Endian
+from app.auth.security import get_current_active_user
+from app.schemas.models import User
 import struct
+from app.utils import decode_float
+from app.services.state_builder import StateBuilder
 
 router = APIRouter()
 
 @router.get("/status")
-async def get_system_status():
-    processor = EventProcessor()
-    tags = processor.tag_values
-    
-    # Helper to safely get float value
-    def get_val(name, default=0.0):
-        return tags.get(name, default)
-
-    # 1. Weather
-    weather = {
-        "temp": get_val("weather_temp"),
-        "hum": get_val("weather_hum"),
-        "uv": get_val("weather_uv")
-    }
-
-    # 2. Sensors (Grouped by ID)
-    # Assuming naming convention: sensor_{id}_{type} e.g. sensor_1_temp
-    # But config.yaml has: sensor_1_top_temp, etc.
-    # Let's map based on known structure in config.yaml
-    
-    # We'll construct the list dynamically or hardcode based on knowledge
-    # For this demo, let's map the specific sensors we know exist
-    sensors = []
-    # We have 6 sensors in config.yaml: sensor_1 to sensor_6
-    for i in range(1, 7):
-        sid = f"sensor_{i}"
-        sensors.append({
-            "id": sid,
-            "details": {
-                "top": {
-                    "temp": get_val(f"{sid}_top_temp"),
-                    "hum": get_val(f"{sid}_top_hum"),
-                    "co2": get_val(f"{sid}_top_co2")
-                },
-                "mid": {
-                    "temp": get_val(f"{sid}_mid_temp"),
-                    "hum": get_val(f"{sid}_mid_hum"),
-                    "co2": get_val(f"{sid}_mid_co2")
-                },
-                "bot": {
-                    "temp": get_val(f"{sid}_bot_temp"),
-                    "hum": get_val(f"{sid}_bot_hum"),
-                    "co2": get_val(f"{sid}_bot_co2")
-                }
-            }
-        })
-
-    # Calculate Averages
-    total_temp = sum(s["details"]["mid"]["temp"] for s in sensors)
-    total_hum = sum(s["details"]["mid"]["hum"] for s in sensors)
-    total_co2 = sum(s["details"]["mid"]["co2"] for s in sensors)
-    count = len(sensors) or 1
-
-    # 3. Devices
-    # Map backend tags to frontend device IDs
-    devices = {
-        "fan_1": {"isOn": bool(get_val("fan_1_status"))},
-        "fan_2": {"isOn": bool(get_val("fan_2_status"))},
-        "pump_main": {"isOn": bool(get_val("pump_main_status"))},
-        "valve_1": {"isOpen": bool(get_val("valve_1_status"))},
-        "led_grow": {"intensity": get_val("led_grow_intensity")}
-    }
-
-    # 4. Mixer
-    mixer = {
-        "level": get_val("mixer_level"),
-        "ph": get_val("mixer_ph"),
-        "ec": get_val("mixer_ec"),
-        "status": "IDLE", # Logic needed to determine status
-        "valveOpen": bool(get_val("mixer_valve")),
-        "pumpActive": bool(get_val("mixer_pump"))
-    }
-
-    # 5. Rack Tanks
-    rack_tanks = {}
-    for i in ["A", "B", "C"]:
-        rack_id = f"rack_{i.lower()}" # rack_a
-        rack_tanks[f"Rack{i}"] = {
-            "rackId": f"Rack{i}",
-            "level": int(get_val(f"{rack_id}_level")),
-            "ph": get_val(f"{rack_id}_ph"),
-            "ec": get_val(f"{rack_id}_ec"),
-            "valveOpen": bool(get_val(f"{rack_id}_valve")),
-            "status": "IDLE"
-        }
-
-    return {
-        "avgTemp": round(total_temp / count, 1),
-        "avgHum": round(total_hum / count, 1),
-        "avgCo2": round(total_co2 / count, 0),
-        "sensors": sensors,
-        "devices": devices,
-        "weather": weather,
-        "mixer": mixer,
-        "rackTanks": rack_tanks
-    }
+async def get_system_status(current_user: User = Depends(get_current_active_user)):
+    return StateBuilder.build_system_state()
 
 @router.post("/control")
-async def control_device(payload: dict = Body(...)):
+async def control_device(payload: dict = Body(...), current_user: User = Depends(get_current_active_user)):
     # payload: { deviceId: "fan_1", isOn: true } or { deviceId: "valve_1", isOpen: true }
     device_id = payload.get("deviceId")
     
@@ -155,13 +67,86 @@ async def control_device(payload: dict = Body(...)):
         client.close()
 
 @router.post("/process/mix")
-async def start_mixing(payload: dict = Body(...)):
-    return {"success": True, "message": "Mixing started (Stub)"}
+async def start_mixing(payload: dict = Body(...), current_user: User = Depends(get_current_active_user)):
+    # payload: { recipeId: 1, params: {...} }
+    recipe_id = payload.get("recipeId", 1)
+    
+    config = settings.app_config.plc
+    client = AsyncModbusTcpClient(config.host, port=config.port)
+    await client.connect()
+    try:
+        # Safety Check: Check Dosing Tank Levels (Registers 20, 22, 24)
+        # Read 6 registers starting at 20 (3 floats)
+        rr = await client.read_holding_registers(20, 6, device_id=1)
+        if rr.isError():
+            raise HTTPException(status_code=500, detail="Failed to read PLC status for safety check")
+        
+        tank1 = decode_float(rr.registers[0:2])
+        tank2 = decode_float(rr.registers[2:4])
+        tank3 = decode_float(rr.registers[4:6])
+        
+        if tank1 < 10.0 or tank2 < 10.0 or tank3 < 10.0:
+             return {"success": False, "error": "Safety Interlock: Dosing tank levels too low (< 10.0)"}
+
+        # Write 1.0 to address 300 (Start Mixing)
+        b_cmd = struct.pack('>f', 1.0)
+        regs_cmd = list(struct.unpack('>HH', b_cmd))
+        await client.write_registers(300, regs_cmd, device_id=1)
+        
+        # Write recipe_id to address 301
+        b_id = struct.pack('>f', float(recipe_id))
+        regs_id = list(struct.unpack('>HH', b_id))
+        await client.write_registers(301, regs_id, device_id=1)
+        
+        # Optimistic update
+        EventProcessor().tag_values["process_mix_cmd"] = 1.0
+        
+        return {"success": True, "message": "Mixing started"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+    finally:
+        client.close()
 
 @router.post("/process/transfer")
-async def start_transfer(payload: dict = Body(...)):
-    return {"success": True, "message": "Transfer started (Stub)"}
+async def start_transfer(payload: dict = Body(...), current_user: User = Depends(get_current_active_user)):
+    # payload: { targetRackId: "RackA" }
+    rack_map = {"RackA": 1.0, "RackB": 2.0, "RackC": 3.0}
+    target_rack = payload.get("targetRackId")
+    rack_val = rack_map.get(target_rack, 1.0)
+    
+    config = settings.app_config.plc
+    client = AsyncModbusTcpClient(config.host, port=config.port)
+    await client.connect()
+    try:
+        # Safety Check: Check Target Rack Level
+        # Rack A Level is at 40. Rack B/C not fully mapped in sim but let's check Rack A if selected.
+        if target_rack == "RackA":
+            rr = await client.read_holding_registers(40, 2, device_id=1)
+            if not rr.isError():
+                level = decode_float(rr.registers)
+                if level > 15.0: # Assuming max is 20
+                     return {"success": False, "error": "Safety Interlock: Target Rack A is nearly full (> 15.0)"}
+
+        # Write 1.0 to address 310 (Start Transfer)
+        b_cmd = struct.pack('>f', 1.0)
+        regs_cmd = list(struct.unpack('>HH', b_cmd))
+        await client.write_registers(310, regs_cmd, device_id=1)
+        
+        # Write rack_val to address 311
+        b_id = struct.pack('>f', rack_val)
+        regs_id = list(struct.unpack('>HH', b_id))
+        await client.write_registers(311, regs_id, device_id=1)
+        
+        # Optimistic update
+        EventProcessor().tag_values["process_transfer_cmd"] = 1.0
+        EventProcessor().tag_values["process_transfer_target"] = rack_val
+        
+        return {"success": True, "message": "Transfer started"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+    finally:
+        client.close()
 
 @router.post("/rules/update")
-async def update_rules(payload: dict = Body(...)):
+async def update_rules(payload: dict = Body(...), current_user: User = Depends(get_current_active_user)):
     return {"success": True, "message": "Rules updated (Stub)"}

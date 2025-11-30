@@ -10,14 +10,21 @@ export default defineConfig({
     svgr(),
     tailwindcss(),
   ],
-  // 增加這段設定來優化依賴項，解決可能的 ESM 相容性問題
-  optimizeDeps: {
-    // 加入 zustand 到此列表中，強制 Vite 處理其 CommonJS 轉換
-    include: ['react', 'react-dom', 'scheduler', 'zustand'],
-  },
+
   server: {
     // 若埠號被佔用，自動開啟下一個
     port: 5173,
-    strictPort: false, 
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'ws://127.0.0.1:8000',
+        ws: true,
+        changeOrigin: true,
+      }
+    },
+    strictPort: false,
   }
 })

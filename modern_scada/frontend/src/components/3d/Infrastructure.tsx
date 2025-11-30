@@ -20,7 +20,7 @@ const Block: React.FC<BlockProps> = ({ position, size, color, label, opacity = 0
       <meshStandardMaterial color={color} emissive={color} emissiveIntensity={isActive ? 0.8 : 0} metalness={0.3} roughness={0.4} transparent opacity={isActive ? 0.9 : 0.4} />
     </mesh>
     {label && (
-      <Text position={[0, size[1]/2 + 1, 0]} fontSize={1.5} color={isActive ? color : '#94a3b8'} anchorY="bottom">{label}</Text>
+      <Text position={[0, size[1] / 2 + 1, 0]} fontSize={1.5} color={isActive ? color : '#94a3b8'} anchorY="bottom">{label}</Text>
     )}
   </group>
 );
@@ -46,10 +46,24 @@ interface InfrastructureProps {
 
 export const Infrastructure: React.FC<InfrastructureProps> = ({ config, devices, onToggle }) => {
   const getStatus = (id: string) => devices && devices[id]?.status === 'ON';
+
+  // Get user role from localStorage directly for simplicity, or could pass as prop
+  const userRole = localStorage.getItem('role');
+  const canControl = userRole === 'admin' || userRole === 'sysadmin';
+
+  const handleToggle = (id: string) => {
+    if (canControl && onToggle) {
+      onToggle(id);
+    } else {
+      console.warn("Access Denied: Insufficient permissions to control devices.");
+      // Optional: Add visual feedback or toast here
+    }
+  };
+
   return (
     <group>
-      {config.waterWalls.map(ww => <Block key={ww.id} position={ww.position} size={ww.size} color={ww.color} label={ww.label} isActive={getStatus(ww.id)} onClick={() => onToggle && onToggle(ww.id)} />)}
-      {config.fans.map(fan => <Block key={fan.id} position={fan.position} size={fan.size} color={fan.color} label={fan.label} isActive={getStatus(fan.id)} onClick={() => onToggle && onToggle(fan.id)} />)}
+      {config.waterWalls.map(ww => <Block key={ww.id} position={ww.position} size={ww.size} color={ww.color} label={ww.label} isActive={getStatus(ww.id)} onClick={() => handleToggle(ww.id)} />)}
+      {config.fans.map(fan => <Block key={fan.id} position={fan.position} size={fan.size} color={fan.color} label={fan.label} isActive={getStatus(fan.id)} onClick={() => handleToggle(fan.id)} />)}
       {config.acUnits.map(ac => <Block key={ac.id} position={ac.position} size={ac.size} color={ac.color} label={ac.label} isActive={getStatus(ac.id)} opacity={0.3} />)}
       <WeatherStation3D position={config.weatherStation.position} color={config.weatherStation.color} />
     </group>

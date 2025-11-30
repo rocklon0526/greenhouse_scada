@@ -1,200 +1,446 @@
-database:
-  postgres_dsn: "postgresql://postgres:password@timeseries-db:5432/scada"
-  sqlite_path: "data/buffer.db"
-
-plc:
-  host: "plc-sim"
-  port: 502
-  poll_interval: 1.0
-
-security:
-  algorithm: "HS256"
-  access_token_expire_minutes: 30
-
-tags:
-  # --- Weather Station ---
-  - name: "weather_temp"
-    address: 0
-    type: "float"
-    unit: "°C"
-  - name: "weather_hum"
-    address: 2
-    type: "float"
-    unit: "%"
-  - name: "weather_uv"
-    address: 4
-    type: "float"
-    unit: "index"
-
-  # --- Mixer Tank ---
-  - name: "mixer_level"
-    address: 10
-    type: "float"
-    unit: "L"
-  - name: "mixer_ph"
-    address: 12
-    type: "float"
-    unit: "pH"
-  - name: "mixer_ec"
-    address: 14
-    type: "float"
-    unit: "mS/cm"
-  - name: "mixer_valve_open"
-    address: 16
-    type: "bool"  # mapped to float 1.0/0.0 in sim
-    unit: "bool"
-  - name: "mixer_pump_active"
-    address: 18
-    type: "bool"
-    unit: "bool"
-
-  # --- Dosing Tanks (1-6) ---
-  - name: "dosing_1_level"
-    address: 20
-    type: "float"
-    unit: "kg"
-  - name: "dosing_2_level"
-    address: 22
-    type: "float"
-    unit: "kg"
-  - name: "dosing_3_level"
-    address: 24
-    type: "float"
-    unit: "kg"
-  - name: "dosing_4_level"
-    address: 26
-    type: "float"
-    unit: "kg"
-  - name: "dosing_5_level"
-    address: 28
-    type: "float"
-    unit: "kg"
-  - name: "dosing_6_level"
-    address: 30
-    type: "float"
-    unit: "kg"
-
-  # --- Rack Tanks (R-1A, R-1B, R-2A, R-2B) ---
-  # R-1A
-  - name: "rack_R-1A_ph"
-    address: 40
-    type: "float"
-    unit: "pH"
-  - name: "rack_R-1A_ec"
-    address: 42
-    type: "float"
-    unit: "mS/cm"
-  - name: "rack_R-1A_level"
-    address: 44
-    type: "float"
-    unit: "level"
-  - name: "rack_R-1A_valve"
-    address: 46
-    type: "bool"
-    unit: "bool"
-  # R-1B
-  - name: "rack_R-1B_ph"
-    address: 50
-    type: "float"
-    unit: "pH"
-  - name: "rack_R-1B_ec"
-    address: 52
-    type: "float"
-    unit: "mS/cm"
-  - name: "rack_R-1B_level"
-    address: 54
-    type: "float"
-    unit: "level"
-  - name: "rack_R-1B_valve"
-    address: 56
-    type: "bool"
-    unit: "bool"
-  # R-2A
-  - name: "rack_R-2A_ph"
-    address: 60
-    type: "float"
-    unit: "pH"
-  - name: "rack_R-2A_ec"
-    address: 62
-    type: "float"
-    unit: "mS/cm"
-  - name: "rack_R-2A_level"
-    address: 64
-    type: "float"
-    unit: "level"
-  - name: "rack_R-2A_valve"
-    address: 66
-    type: "bool"
-    unit: "bool"
-  # R-2B
-  - name: "rack_R-2B_ph"
-    address: 70
-    type: "float"
-    unit: "pH"
-  - name: "rack_R-2B_ec"
-    address: 72
-    type: "float"
-    unit: "mS/cm"
-  - name: "rack_R-2B_level"
-    address: 74
-    type: "float"
-    unit: "level"
-  - name: "rack_R-2B_valve"
-    address: 76
-    type: "bool"
-    unit: "bool"
-
-  # --- Sensors (Sample for Aisle 1, Point 1) ---
-  # Top
-  - name: "sensor_Aisle-1-P-1_top_temp"
-    address: 100
-    type: "float"
-    unit: "°C"
-  - name: "sensor_Aisle-1-P-1_top_hum"
-    address: 102
-    type: "float"
-    unit: "%"
-  - name: "sensor_Aisle-1-P-1_top_co2"
-    address: 104
-    type: "float"
-    unit: "ppm"
-  # Mid
-  - name: "sensor_Aisle-1-P-1_mid_temp"
-    address: 106
-    type: "float"
-    unit: "°C"
-  - name: "sensor_Aisle-1-P-1_mid_hum"
-    address: 108
-    type: "float"
-    unit: "%"
-  - name: "sensor_Aisle-1-P-1_mid_co2"
-    address: 110
-    type: "float"
-    unit: "ppm"
-  # Bot
-  - name: "sensor_Aisle-1-P-1_bot_temp"
-    address: 112
-    type: "float"
-    unit: "°C"
-  - name: "sensor_Aisle-1-P-1_bot_hum"
-    address: 114
-    type: "float"
-    unit: "%"
-  - name: "sensor_Aisle-1-P-1_bot_co2"
-    address: 116
-    type: "float"
-    unit: "ppm"
-
 alarms:
-  - tag_name: "weather_temp"
-    type: "high"
-    threshold: 40.0
-    message: "Outdoor Temperature High!"
-  - tag_name: "mixer_ph"
-    type: "high"
-    threshold: 8.0
-    message: "Mixer pH High!"
-  - tag_name: "mixer_ph"
-    type: "low"
-    threshold: 4.0
-    message: "Mixer pH Low!"
+- message: Outdoor Temperature High!
+  tag_name: weather_temp
+  threshold: 40.0
+  type: high
+- message: Mixer pH High!
+  tag_name: mixer_ph
+  threshold: 8.0
+  type: high
+- message: Mixer pH Low!
+  tag_name: mixer_ph
+  threshold: 4.0
+  type: low
+database:
+  postgres_dsn: postgresql://postgres:password@timeseries-db:5432/scada
+  sqlite_path: data/buffer.db
+plc:
+  connections:
+  - host: plc-sim
+    name: Main PLC
+    poll_interval: 1
+    port: 502
+security:
+  access_token_expire_minutes: 30
+  algorithm: HS256
+tags:
+- address: 0
+  connection_name: Main PLC
+  name: weather_temp
+  type: float
+  unit: "\xB0C"
+- address: 2
+  connection_name: Main PLC
+  name: weather_hum
+  type: float
+  unit: '%'
+- address: 4
+  connection_name: Main PLC
+  name: weather_uv
+  type: float
+  unit: index
+- address: 10
+  connection_name: Main PLC
+  name: mixer_level
+  type: float
+  unit: L
+- address: 12
+  connection_name: Main PLC
+  name: mixer_ph
+  type: float
+  unit: pH
+- address: 14
+  connection_name: Main PLC
+  name: mixer_ec
+  type: float
+  unit: mS/cm
+- address: 16
+  connection_name: Main PLC
+  name: mixer_valve_open
+  type: bool
+  unit: bool
+- address: 18
+  connection_name: Main PLC
+  name: mixer_pump_active
+  type: bool
+  unit: bool
+- address: 20
+  connection_name: Main PLC
+  name: dosing_1_level
+  type: float
+  unit: kg
+- address: 22
+  connection_name: Main PLC
+  name: dosing_2_level
+  type: float
+  unit: kg
+- address: 24
+  connection_name: Main PLC
+  name: dosing_3_level
+  type: float
+  unit: kg
+- address: 26
+  connection_name: Main PLC
+  name: dosing_4_level
+  type: float
+  unit: kg
+- address: 28
+  connection_name: Main PLC
+  name: dosing_5_level
+  type: float
+  unit: kg
+- address: 30
+  connection_name: Main PLC
+  name: dosing_6_level
+  type: float
+  unit: kg
+- address: 40
+  connection_name: Main PLC
+  name: rack_R-1A_ph
+  type: float
+  unit: pH
+- address: 42
+  connection_name: Main PLC
+  name: rack_R-1A_ec
+  type: float
+  unit: mS/cm
+- address: 44
+  connection_name: Main PLC
+  name: rack_R-1A_level
+  type: float
+  unit: level
+- address: 46
+  connection_name: Main PLC
+  name: rack_R-1A_valve
+  type: bool
+  unit: bool
+- address: 50
+  connection_name: Main PLC
+  name: rack_R-1B_ph
+  type: float
+  unit: pH
+- address: 52
+  connection_name: Main PLC
+  name: rack_R-1B_ec
+  type: float
+  unit: mS/cm
+- address: 54
+  connection_name: Main PLC
+  name: rack_R-1B_level
+  type: float
+  unit: level
+- address: 56
+  connection_name: Main PLC
+  name: rack_R-1B_valve
+  type: bool
+  unit: bool
+- address: 60
+  connection_name: Main PLC
+  name: rack_R-2A_ph
+  type: float
+  unit: pH
+- address: 62
+  connection_name: Main PLC
+  name: rack_R-2A_ec
+  type: float
+  unit: mS/cm
+- address: 64
+  connection_name: Main PLC
+  name: rack_R-2A_level
+  type: float
+  unit: level
+- address: 66
+  connection_name: Main PLC
+  name: rack_R-2A_valve
+  type: bool
+  unit: bool
+- address: 70
+  connection_name: Main PLC
+  name: rack_R-2B_ph
+  type: float
+  unit: pH
+- address: 72
+  connection_name: Main PLC
+  name: rack_R-2B_ec
+  type: float
+  unit: mS/cm
+- address: 74
+  connection_name: Main PLC
+  name: rack_R-2B_level
+  type: float
+  unit: level
+- address: 76
+  connection_name: Main PLC
+  name: rack_R-2B_valve
+  type: bool
+  unit: bool
+- address: 100
+  connection_name: Main PLC
+  name: sensor_1_top_temp
+  type: float
+  unit: "\xB0C"
+- address: 102
+  connection_name: Main PLC
+  name: sensor_1_top_hum
+  type: float
+  unit: "%"
+- address: 104
+  connection_name: Main PLC
+  name: sensor_1_top_co2
+  type: float
+  unit: "ppm"
+- address: 106
+  connection_name: Main PLC
+  name: sensor_1_mid_temp
+  type: float
+  unit: "\xB0C"
+- address: 108
+  connection_name: Main PLC
+  name: sensor_1_mid_hum
+  type: float
+  unit: "%"
+- address: 110
+  connection_name: Main PLC
+  name: sensor_1_mid_co2
+  type: float
+  unit: "ppm"
+- address: 112
+  connection_name: Main PLC
+  name: sensor_1_bot_temp
+  type: float
+  unit: "\xB0C"
+- address: 114
+  connection_name: Main PLC
+  name: sensor_1_bot_hum
+  type: float
+  unit: "%"
+- address: 116
+  connection_name: Main PLC
+  name: sensor_1_bot_co2
+  type: float
+  unit: "ppm"
+- address: 120
+  connection_name: Main PLC
+  name: sensor_2_top_temp
+  type: float
+  unit: "\xB0C"
+- address: 122
+  connection_name: Main PLC
+  name: sensor_2_top_hum
+  type: float
+  unit: "%"
+- address: 124
+  connection_name: Main PLC
+  name: sensor_2_top_co2
+  type: float
+  unit: "ppm"
+- address: 126
+  connection_name: Main PLC
+  name: sensor_2_mid_temp
+  type: float
+  unit: "\xB0C"
+- address: 128
+  connection_name: Main PLC
+  name: sensor_2_mid_hum
+  type: float
+  unit: "%"
+- address: 130
+  connection_name: Main PLC
+  name: sensor_2_mid_co2
+  type: float
+  unit: "ppm"
+- address: 132
+  connection_name: Main PLC
+  name: sensor_2_bot_temp
+  type: float
+  unit: "\xB0C"
+- address: 134
+  connection_name: Main PLC
+  name: sensor_2_bot_hum
+  type: float
+  unit: "%"
+- address: 136
+  connection_name: Main PLC
+  name: sensor_2_bot_co2
+  type: float
+  unit: "ppm"
+- address: 140
+  connection_name: Main PLC
+  name: sensor_3_top_temp
+  type: float
+  unit: "\xB0C"
+- address: 142
+  connection_name: Main PLC
+  name: sensor_3_top_hum
+  type: float
+  unit: "%"
+- address: 144
+  connection_name: Main PLC
+  name: sensor_3_top_co2
+  type: float
+  unit: "ppm"
+- address: 146
+  connection_name: Main PLC
+  name: sensor_3_mid_temp
+  type: float
+  unit: "\xB0C"
+- address: 148
+  connection_name: Main PLC
+  name: sensor_3_mid_hum
+  type: float
+  unit: "%"
+- address: 150
+  connection_name: Main PLC
+  name: sensor_3_mid_co2
+  type: float
+  unit: "ppm"
+- address: 152
+  connection_name: Main PLC
+  name: sensor_3_bot_temp
+  type: float
+  unit: "\xB0C"
+- address: 154
+  connection_name: Main PLC
+  name: sensor_3_bot_hum
+  type: float
+  unit: "%"
+- address: 156
+  connection_name: Main PLC
+  name: sensor_3_bot_co2
+  type: float
+  unit: "ppm"
+- address: 160
+  connection_name: Main PLC
+  name: sensor_4_top_temp
+  type: float
+  unit: "\xB0C"
+- address: 162
+  connection_name: Main PLC
+  name: sensor_4_top_hum
+  type: float
+  unit: "%"
+- address: 164
+  connection_name: Main PLC
+  name: sensor_4_top_co2
+  type: float
+  unit: "ppm"
+- address: 166
+  connection_name: Main PLC
+  name: sensor_4_mid_temp
+  type: float
+  unit: "\xB0C"
+- address: 168
+  connection_name: Main PLC
+  name: sensor_4_mid_hum
+  type: float
+  unit: "%"
+- address: 170
+  connection_name: Main PLC
+  name: sensor_4_mid_co2
+  type: float
+  unit: "ppm"
+- address: 172
+  connection_name: Main PLC
+  name: sensor_4_bot_temp
+  type: float
+  unit: "\xB0C"
+- address: 174
+  connection_name: Main PLC
+  name: sensor_4_bot_hum
+  type: float
+  unit: "%"
+- address: 176
+  connection_name: Main PLC
+  name: sensor_4_bot_co2
+  type: float
+  unit: "ppm"
+- address: 180
+  connection_name: Main PLC
+  name: sensor_5_top_temp
+  type: float
+  unit: "\xB0C"
+- address: 182
+  connection_name: Main PLC
+  name: sensor_5_top_hum
+  type: float
+  unit: "%"
+- address: 184
+  connection_name: Main PLC
+  name: sensor_5_top_co2
+  type: float
+  unit: "ppm"
+- address: 186
+  connection_name: Main PLC
+  name: sensor_5_mid_temp
+  type: float
+  unit: "\xB0C"
+- address: 188
+  connection_name: Main PLC
+  name: sensor_5_mid_hum
+  type: float
+  unit: "%"
+- address: 190
+  connection_name: Main PLC
+  name: sensor_5_mid_co2
+  type: float
+  unit: "ppm"
+- address: 192
+  connection_name: Main PLC
+  name: sensor_5_bot_temp
+  type: float
+  unit: "\xB0C"
+- address: 194
+  connection_name: Main PLC
+  name: sensor_5_bot_hum
+  type: float
+  unit: "%"
+- address: 196
+  connection_name: Main PLC
+  name: sensor_5_bot_co2
+  type: float
+  unit: "ppm"
+- address: 200
+  connection_name: Main PLC
+  name: sensor_6_top_temp
+  type: float
+  unit: "\xB0C"
+- address: 202
+  connection_name: Main PLC
+  name: sensor_6_top_hum
+  type: float
+  unit: "%"
+- address: 204
+  connection_name: Main PLC
+  name: sensor_6_top_co2
+  type: float
+  unit: "ppm"
+- address: 206
+  connection_name: Main PLC
+  name: sensor_6_mid_temp
+  type: float
+  unit: "\xB0C"
+- address: 208
+  connection_name: Main PLC
+  name: sensor_6_mid_hum
+  type: float
+  unit: "%"
+- address: 210
+  connection_name: Main PLC
+  name: sensor_6_mid_co2
+  type: float
+  unit: "ppm"
+- address: 212
+  connection_name: Main PLC
+  name: sensor_6_bot_temp
+  type: float
+  unit: "\xB0C"
+- address: 214
+  connection_name: Main PLC
+  name: sensor_6_bot_hum
+  type: float
+  unit: "%"
+- address: 216
+  connection_name: Main PLC
+  name: sensor_6_bot_co2
+  type: float
+  unit: "ppm"

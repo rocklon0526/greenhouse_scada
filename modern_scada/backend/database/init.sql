@@ -1,11 +1,12 @@
 -- Create roles table
 CREATE TABLE IF NOT EXISTS roles (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(50) UNIQUE NOT NULL
+    name VARCHAR(50) UNIQUE NOT NULL,
+    description TEXT
 );
 
 -- Insert default roles
-INSERT INTO roles (name) VALUES ('admin'), ('operator'), ('viewer')
+INSERT INTO roles (name) VALUES ('sysadmin'), ('admin'), ('user')
 ON CONFLICT (name) DO NOTHING;
 
 -- Create users table
@@ -22,8 +23,8 @@ CREATE TABLE IF NOT EXISTS users (
 -- Here we use a placeholder hash for 'admin123' generated via bcrypt.
 -- $2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW
 INSERT INTO users (username, hashed_password, role_id) 
-SELECT 'admin', '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', id 
-FROM roles WHERE name = 'admin'
+SELECT 'admin', '$2b$12$Sx4m5bPdJsS32crvhWP7DerZ83VSbFFwfV8P5WCUSAIN4AmpCkNWO', id 
+FROM roles WHERE name = 'sysadmin'
 ON CONFLICT (username) DO NOTHING;
 
 -- Create sensor_data table (TimescaleDB hypertable candidate, but standard PG for now)

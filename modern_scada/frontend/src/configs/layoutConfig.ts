@@ -49,7 +49,7 @@ const BASE_LAYOUT: LayoutConfig = {
       { id: 'ww-2', label: "Water Wall A", position: [22, 5, -28], size: [20, 4, 1], color: "#ef4444", defaultParams: { level: 1 } }
     ],
     // 風扇現在改為動態生成，這裡的設定會被覆蓋，保留空陣列或預設值皆可
-    fans: [], 
+    fans: [],
     acUnits: [
       { id: 'ac-1', label: "Main AC", position: [35, 2, 0], size: [4, 4, 50], color: "#eab308", defaultParams: { targetTemp: 26, mode: 'cool' } }
     ],
@@ -62,7 +62,7 @@ const BASE_LAYOUT: LayoutConfig = {
 
 const generateFullLayout = (base: LayoutConfig): LayoutConfig => {
   const layout = JSON.parse(JSON.stringify(base)) as LayoutConfig;
-  
+
   // --- 參數設定 ---
   const NUM_AISLES = 2;       // 總共 2 條走道
   const AISLE_SPACING = 10;   // 走道中心點的間距 (您的設定)
@@ -72,7 +72,7 @@ const generateFullLayout = (base: LayoutConfig): LayoutConfig => {
   // [計算偏移量] 
   // 目標座標: Fan1 X=25, Fan2 X=15
   // 公式: ((1)/2 - 0) * 10 + SHIFT = 5 + SHIFT = 25  => SHIFT = 20
-  const GROUP_SHIFT_X = 20; 
+  const GROUP_SHIFT_X = 20;
 
   // [關鍵步驟] 清空並重新生成風扇，確保每個走道對應一個風扇
   layout.infrastructure.fans = [];
@@ -80,7 +80,7 @@ const generateFullLayout = (base: LayoutConfig): LayoutConfig => {
   for (let i = 0; i < NUM_AISLES; i++) {
     // 計算每條走道的 X 軸中心點 (從右向左生成: 25 -> 15)
     const aisleX = ((NUM_AISLES - 1) / 2 - i) * AISLE_SPACING + GROUP_SHIFT_X;
-    
+
     // 1. 動態生成對應走道的風扇 (Fan)
     layout.infrastructure.fans.push({
       id: `fan-${i + 1}`,
@@ -92,49 +92,51 @@ const generateFullLayout = (base: LayoutConfig): LayoutConfig => {
     });
 
     // 2. 建立中間走道的設施 (Ducts, Sensors)
-    layout.ducts.push({ position: [aisleX, 8, 0], size: [0.4, 0.4, 0] }); 
-    
+    layout.ducts.push({ position: [aisleX, 8, 0], size: [0.4, 0.4, 0] });
+
     for (let j = 0; j < SENSORS_PER_AISLE; j++) {
       const z = (j - (SENSORS_PER_AISLE - 1) / 2) * 19;
-      layout.sensorPoints.push({ 
-        id: `Aisle-${i+1}-P-${j+1}`, 
-        position: [aisleX, 4, z], 
-        aisle: i + 1 
+      // Calculate sequential ID to match backend (sensor_1 to sensor_6)
+      const sensorId = `sensor_${i * SENSORS_PER_AISLE + j + 1}`;
+      layout.sensorPoints.push({
+        id: sensorId,
+        position: [aisleX, 4, z],
+        aisle: i + 1
       });
     }
 
     // 3. 建立走道兩側的層架 (Rack-Aisle-Rack)
     // 右側層架 (A側)
-    layout.racks.push({ 
-      id: `R-${i+1}A`, 
-      position: [aisleX + RACK_OFFSET, 0, 0], 
-      levels: 5, 
-      width: 2, 
-      length: 40, 
-      height: 6 
+    layout.racks.push({
+      id: `R-${i + 1}A`,
+      position: [aisleX + RACK_OFFSET, 0, 0],
+      levels: 5,
+      width: 2,
+      length: 40,
+      height: 6
     });
 
     // 左側層架 (B側)
-    layout.racks.push({ 
-      id: `R-${i+1}B`, 
-      position: [aisleX - RACK_OFFSET, 0, 0], 
-      levels: 5, 
-      width: 2, 
-      length: 40, 
-      height: 6 
+    layout.racks.push({
+      id: `R-${i + 1}B`,
+      position: [aisleX - RACK_OFFSET, 0, 0],
+      levels: 5,
+      width: 2,
+      length: 40,
+      height: 6
     });
   }
 
   // 調配區位置
   layout.dosingSystem = {
-    position: [-35, 0, -20], 
+    position: [-35, 0, -20],
     tankConfigs: [
       { id: 1, color: '#a855f7' }, { id: 2, color: '#ec4899' },
       { id: 3, color: '#3b82f6' }, { id: 4, color: '#10b981' },
       { id: 5, color: '#f59e0b' }, { id: 6, color: '#6366f1' }
     ]
   };
-  
+
   return layout;
 }
 

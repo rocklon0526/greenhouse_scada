@@ -8,6 +8,7 @@ from app.routers import auth, api, websocket
 from app.workers.polling import polling_loop
 from app.workers.forwarder import forwarder_loop
 from app.workers.scheduler import start_scheduler
+from app.workers.system_monitor import system_monitor_loop
 import logging
 
 # Setup logging
@@ -25,6 +26,7 @@ async def lifespan(app: FastAPI):
     # We use asyncio.create_task to run them in the background
     polling_task = asyncio.create_task(polling_loop())
     forwarder_task = asyncio.create_task(forwarder_loop())
+    monitor_task = asyncio.create_task(system_monitor_loop())
     start_scheduler()
     
     yield
@@ -33,14 +35,17 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down...")
     polling_task.cancel()
     forwarder_task.cancel()
+    monitor_task.cancel()
     await PostgresDB.close()
 
 app = FastAPI(title="Modern SCADA Backend", lifespan=lifespan)
 
-app.include_router(auth.router, tags=["Authentication"])
+app.include_router(auth.router, prefix="/api", tags=["Authentication"])
 app.include_router(api.router, prefix="/api", tags=["API"])
 from app.routers import frontend
 app.include_router(frontend.router, prefix="/api", tags=["Frontend Adapter"])
+from app.routers import users
+app.include_router(users.router, prefix="/api", tags=["User Management"])
 app.include_router(websocket.router, tags=["Realtime"])
 
 @app.get("/")

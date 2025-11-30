@@ -9,6 +9,7 @@ import VerticalRack from '../components/3d/VerticalRack';
 import SensorGroup from '../components/3d/SensorGroup';
 import { Infrastructure } from '../components/3d/Infrastructure';
 import { DosingSystem3D } from '../components/3d/DosingSystem3D';
+import { WaterPipeSystem3D } from '../components/3d/WaterPipeSystem3D';
 import RackNutrientTank3D from '../components/3d/RackNutrientTank3D';
 import { translations } from '../i18n/translations';
 
@@ -35,15 +36,18 @@ const SensorDetailPanel = () => {
   const levels = [t.top, t.mid, t.bot];
   const levelData = [sensorGroup.details.top, sensorGroup.details.mid, sensorGroup.details.bot];
 
+  // Helper to format numbers
+  const fmt = (val: number | undefined) => typeof val === 'number' ? val.toFixed(2) : val;
+
   return (
     <DetailCard title={sensorGroup.id} subTitle={t.sensorAnalysis} onClose={clearSelection}>
       <div className="space-y-3">
         {levels.map((label, idx) => (
           <div key={label} className="bg-slate-800/50 rounded-lg p-3 border border-slate-700 flex items-center justify-between gap-3">
             <div className="flex flex-col justify-center w-8 border-r border-slate-600 mr-1"><span className="text-xs font-bold text-slate-500 uppercase">{label}</span></div>
-            <div className="flex-1"><div className="text-[9px] text-slate-400 uppercase">Temp</div><div className={`font-mono font-bold text-sm ${levelData[idx].temp > 28 ? 'text-red-400' : 'text-white'}`}>{levelData[idx].temp}°</div></div>
-            <div className="flex-1"><div className="text-[9px] text-slate-400 uppercase">Hum</div><div className="font-mono font-bold text-sm text-blue-300">{levelData[idx].hum}%</div></div>
-            <div className="flex-1"><div className="text-[9px] text-slate-400 uppercase">CO2</div><div className="font-mono font-bold text-sm text-gray-300">{levelData[idx].co2}</div></div>
+            <div className="flex-1"><div className="text-[9px] text-slate-400 uppercase">Temp</div><div className={`font-mono font-bold text-sm ${levelData[idx].temp > 28 ? 'text-red-400' : 'text-white'}`}>{fmt(levelData[idx].temp)}°</div></div>
+            <div className="flex-1"><div className="text-[9px] text-slate-400 uppercase">Hum</div><div className="font-mono font-bold text-sm text-blue-300">{fmt(levelData[idx].hum)}%</div></div>
+            <div className="flex-1"><div className="text-[9px] text-slate-400 uppercase">CO2</div><div className="font-mono font-bold text-sm text-gray-300">{fmt(levelData[idx].co2)}</div></div>
           </div>
         ))}
       </div>
@@ -225,13 +229,13 @@ const WeatherPanel = () => {
     <div className="absolute top-24 left-6 w-56 bg-slate-900/80 backdrop-blur-md border border-purple-500/30 rounded-2xl p-4 shadow-xl pointer-events-none z-10">
       <div className="flex items-center gap-2 mb-3 text-purple-400"><CloudSun size={20} /><span className="font-bold text-sm uppercase">{t.outdoorWeather}</span></div>
       <div className="grid grid-cols-2 gap-3">
-        <div><div className="text-xs text-slate-400">Temp</div><div className="text-xl font-mono font-bold text-white">{weatherStation.temp}°</div></div>
-        <div><div className="text-xs text-slate-400">Humidity</div><div className="text-xl font-mono font-bold text-blue-300">{weatherStation.hum}%</div></div>
+        <div><div className="text-xs text-slate-400">Temp</div><div className="text-xl font-mono font-bold text-white">{typeof weatherStation.temp === 'number' ? weatherStation.temp.toFixed(2) : weatherStation.temp}°</div></div>
+        <div><div className="text-xs text-slate-400">Humidity</div><div className="text-xl font-mono font-bold text-blue-300">{typeof weatherStation.hum === 'number' ? weatherStation.hum.toFixed(2) : weatherStation.hum}%</div></div>
         <div className="col-span-2 pt-2 border-t border-slate-700"><div className="flex justify-between text-xs"><span className="text-slate-400">{t.uvIndex}</span><span className="text-yellow-400 font-bold">{weatherStation.uv}</span></div></div>
       </div>
     </div>
   )
-}
+};
 
 const OverviewPage = () => {
   // @ts-ignore
@@ -247,8 +251,8 @@ const OverviewPage = () => {
       <RackTankPanel />
 
       <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, toneMapping: THREE.ReinhardToneMapping, toneMappingExposure: 1.5 }} onPointerMissed={(e) => e.type === 'click' && clearSelection()}>
-        <OrthographicCamera makeDefault position={[60, 60, 90]} zoom={12} near={-200} far={1000} />
-        <OrbitControls enableRotate={false} enableZoom={true} enablePan={true} minZoom={5} maxZoom={40} />
+        <OrthographicCamera makeDefault position={[50, 50, 50]} zoom={10} near={-200} far={1000} />
+        <OrbitControls makeDefault target={[0, 0, 0]} enableRotate={true} enableZoom={true} enablePan={true} minZoom={5} maxZoom={40} />
         <ambientLight intensity={0.8} color="#ffffff" />
         <directionalLight position={[30, 60, 30]} intensity={1.5} castShadow shadow-mapSize={[4096, 4096]} />
         <Stars radius={200} depth={50} count={2000} factor={4} saturation={0} fade />
@@ -256,6 +260,7 @@ const OverviewPage = () => {
         <group position={[0, -5, 0]}>
           <Grid position={[0, 0.01, 0]} args={[120, 120]} cellColor="#334155" sectionColor="#64748b" fadeDistance={150} infiniteGrid />
           <DosingSystem3D />
+          <WaterPipeSystem3D />
           {Object.values(rackTanks || {}).map((tank: any) => (
             <RackNutrientTank3D key={tank.rackId} data={tank} />
           ))}
@@ -264,8 +269,8 @@ const OverviewPage = () => {
           <Infrastructure config={WAREHOUSE_LAYOUT.infrastructure} devices={devices} onToggle={toggleDevice} />
           <ContactShadows resolution={1024} scale={150} blur={2} opacity={0.25} far={5} color="#000000" />
         </group>
-      </Canvas>
-    </div>
+      </Canvas >
+    </div >
   );
 };
 

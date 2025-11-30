@@ -37,3 +37,23 @@ class SQLiteDB:
         async with aiosqlite.connect(cls._db_path) as db:
             async with db.execute(query, params) as cursor:
                 return await cursor.fetchall()
+
+    @classmethod
+    async def get_buffer_status(cls):
+        async with aiosqlite.connect(cls._db_path) as db:
+            async with db.execute("SELECT COUNT(*) FROM buffer") as cursor:
+                count = (await cursor.fetchone())[0]
+            
+            async with db.execute("SELECT * FROM buffer ORDER BY created_at DESC LIMIT 50") as cursor:
+                rows = await cursor.fetchall()
+                # Convert to list of dicts
+                items = []
+                for row in rows:
+                    items.append({
+                        "id": row[0],
+                        "query": row[1],
+                        "params": row[2],
+                        "created_at": row[3]
+                    })
+            
+            return {"count": count, "items": items}

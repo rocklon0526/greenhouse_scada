@@ -8,10 +8,14 @@ class DatabaseConfig(BaseModel):
     postgres_dsn: str
     sqlite_path: str
 
-class PLCConfig(BaseModel):
+class PLCConnection(BaseModel):
+    name: str
     host: str
     port: int
     poll_interval: float
+
+class PLCConfig(BaseModel):
+    connections: List[PLCConnection]
 
 class SecurityConfig(BaseModel):
     algorithm: str
@@ -22,6 +26,7 @@ class TagConfig(BaseModel):
     address: int
     type: str
     unit: str
+    connection_name: Optional[str] = None
 
 class AlarmConfig(BaseModel):
     tag_name: str
