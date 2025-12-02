@@ -4,8 +4,7 @@ import { useAppStore } from '@core/stores/useAppStore';
 import { Generic3DViewer } from '@modules/mod_3d_viewer/Generic3DViewer';
 import { translations } from '@core/i18n/translations';
 
-// --- 子元件 (保持不變，但加上型別安全檢查) ---
-
+// --- 子元件保持不變 ---
 const DetailCard = ({ title, subTitle, onClose, children }: { title: string, subTitle?: string, onClose: () => void, children: React.ReactNode }) => (
   <div className="absolute top-24 right-6 w-80 bg-slate-900/95 backdrop-blur-xl border border-blue-500/30 rounded-2xl p-5 shadow-2xl z-20 animate-in slide-in-from-right-10 fade-in duration-300">
     <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-700">
@@ -173,25 +172,19 @@ const WeatherPanel = () => {
   )
 };
 
+// --- 主要元件 OverviewPage ---
+
 const OverviewPage = () => {
-  // 使用 as any 避開型別錯誤，直接取得 Store 內容
   const { initSystem, devices, layoutConfig } = useAppStore() as any;
 
+  // 1. useEffect (Hook) - 必須放在最上面
   useEffect(() => {
     const cleanup = initSystem();
     return cleanup;
   }, [initSystem]);
 
-  // 【重要】在配置檔載入前顯示 Loading，避免 3D Viewer 崩潰
-  if (!layoutConfig) {
-    return (
-      <div className="w-full h-screen bg-slate-950 flex items-center justify-center text-slate-400">
-        <Loader2 className="animate-spin mr-2" /> Loading System Configuration...
-      </div>
-    );
-  }
-
-  // 根據 layoutConfig 建構映射表 (假設 mesh node 名稱與 ID 對應)
+  // 2. useMemo (Hook) - 必須在 if return 之前執行！
+  //    我們在內部處理 layoutConfig 為 null 的情況，確保 Hook 總是會被執行。
   const visualizationMapping = useMemo(() => {
     if (!layoutConfig || !layoutConfig.zones) return {};
     const mapping: Record<string, string> = {};
@@ -214,6 +207,15 @@ const OverviewPage = () => {
     return mapping;
   }, [layoutConfig]);
 
+  // 3. 條件渲染 (Conditional Rendering) - 必須放在所有 Hooks 之後！
+  if (!layoutConfig) {
+    return (
+      <div className="w-full h-screen bg-slate-950 flex items-center justify-center text-slate-400">
+        <Loader2 className="animate-spin mr-2" /> Loading System Configuration...
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-screen relative overflow-hidden bg-slate-950">
       {/* UI Overlay Layer */}
@@ -230,7 +232,7 @@ const OverviewPage = () => {
       {/* 3D Viewer Layer (z-0) */}
       <div className="absolute inset-0 z-0">
         <Generic3DViewer
-          // 【關鍵修正】移除了 modelUrl，強制啟用 Procedural Mode (程式碼生成)
+          // 【已修正】移除了 modelUrl，強制啟用 Procedural Mode (程式碼生成)
           mapping={visualizationMapping}
           values={devices}
           visualizationConfig={layoutConfig?.visualization}

@@ -235,18 +235,20 @@ export const Generic3DViewer: React.FC<Generic3DViewerProps> = (props: Generic3D
             <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, toneMapping: THREE.ReinhardToneMapping, toneMappingExposure: 1.5 }}>
                 <OrthographicCamera
                     makeDefault
-                    position={[-20, 20, 20]}
-                    zoom={40}
+                    position={[-50, 50, 50]} // 拉遠距離
+                    zoom={20}                // 縮小 zoom 值 (值越小，視野越大)
                     near={-200}
-                    far={1000}
-                    onUpdate={(c: THREE.OrthographicCamera) => c.lookAt(0, 0, 0)}
+                    far={2000}               // 增加可視距離
+                    onUpdate={(c) => c.lookAt(0, 0, 0)}
                 />
                 <OrbitControls makeDefault target={[0, 0, 0]} enableRotate={true} enableZoom={true} enablePan={true} minZoom={10} maxZoom={100} />
 
                 <Environment preset="city" />
-                <ambientLight intensity={0.5} />
-                <directionalLight position={[30, 60, 30]} intensity={1} castShadow shadow-mapSize={[4096, 4096]} />
-
+                {/* <ambientLight intensity={0.5} />
+                <directionalLight position={[30, 60, 30]} intensity={1} castShadow shadow-mapSize={[4096, 4096]} /> */}
+                <ambientLight intensity={2.0} /> {/* 大幅增加環境光 */}
+                <pointLight position={[0, 50, 0]} intensity={3000} distance={200} /> {/* 增加一盞強力的點光源 */}
+                <directionalLight position={[50, 50, 25]} intensity={2.5} castShadow />
                 <group position={[0, -5, 0]}>
                     <SimpleErrorBoundary fallback={<Fallback />}>
                         <Suspense fallback={null}>

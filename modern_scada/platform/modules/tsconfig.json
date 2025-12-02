@@ -1,9 +1,61 @@
 {
     "extends": "../core/frontend/tsconfig.json",
     "compilerOptions": {
+        "baseUrl": "../core/frontend",
+        "typeRoots": [
+            "../core/frontend/node_modules/@types"
+        ],
+        /* 1. 覆寫 types：只保留 node，移除 vite/client 避免搜尋錯誤 */
+        "types": [
+            "node"
+        ],
+        "paths": {
+            /* 必須完整複製父層的 paths，否則會被覆蓋導致失效 */
+            "@core/*": [
+                "./src/*"
+            ],
+            "@modules/*": [
+                "../../modules/*"
+            ],
+            "@projects/*": [
+                "../../../projects/*"
+            ],
+            "lucide-react": [
+                "./node_modules/lucide-react"
+            ],
+            "react-router-dom": [
+                "./node_modules/react-router-dom"
+            ],
+            "react": [
+                "./node_modules/@types/react"
+            ],
+            "react/jsx-runtime": [
+                "./node_modules/@types/react/jsx-runtime"
+            ],
+            "react-dom": [
+                "./node_modules/@types/react-dom"
+            ],
+            "three": [
+                "./node_modules/@types/three"
+            ],
+            "@react-three/fiber": [
+                "./node_modules/@react-three/fiber"
+            ],
+            "@react-three/drei": [
+                "./node_modules/@react-three/drei"
+            ],
+            "vite/client": [
+                "./node_modules/vite/client"
+            ],
+            "*": [
+                "./node_modules/*"
+            ]
+        },
         "noEmit": true
     },
     "include": [
-        "**/*"
+        "**/*",
+        /* 2. 直接引入核心模組中的 vite 定義檔 */
+        "../core/frontend/node_modules/vite/client.d.ts"
     ]
 }
