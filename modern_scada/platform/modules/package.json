@@ -1,0 +1,15 @@
+{
+    "name": "@modern-scada/modules",
+    "version": "0.0.0",
+    "private": true,
+    "peerDependencies": {
+        "@react-three/drei": "^9.99.0",
+        "@react-three/fiber": "^8.15.16",
+        "react": "^18.3.1",
+        "three": "^0.160.0"
+    },
+    "devDependencies": {
+        "@types/react": "^19.2.7",
+        "@types/three": "^0.181.0"
+    }
+}

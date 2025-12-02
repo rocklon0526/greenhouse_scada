@@ -1,6 +1,6 @@
 services:
   backend-core:
-    build: ./backend
+    build: ./platform/core/backend
     container_name: backend-core
     ports:
       - "8000:8000"
@@ -9,11 +9,14 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=scada
       - DATABASE_URL=postgresql://postgres:password@timeseries-db:5432/scada
+      - SCADA_PROJECT_PATH=/app/projects/greenhouse/config
     depends_on:
       - timeseries-db
       - plc-sim
     volumes:
-      - ./backend:/app
+      - ./platform/core/backend:/app
+      - ./platform/modules:/app/modules
+      - ./projects:/app/projects
       - backend_data:/app/data
 
   timeseries-db:
@@ -27,7 +30,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./platform/core/backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   plc-sim:
     build: ./simulator
@@ -35,13 +38,24 @@ services:
     ports:
       - "5020:502"
 
+  redis:
+    image: redis:alpine
+    container_name: scada-redis
+    ports:
+      - "6379:6379"
+    restart: always
+
   frontend:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: platform/core/frontend/Dockerfile
     container_name: frontend
     ports:
       - "80:80"
     depends_on:
       - backend-core
+    volumes:
+      - ./projects/greenhouse/assets:/usr/share/nginx/html/models
 
   pgadmin:
     image: dpage/pgadmin4

@@ -1,0 +1,42 @@
+layout:
+  zones:
+    nutrient:
+      mixing_tank:
+        id: "mixer_1"
+        type: "Mixer"
+        position: [0, 0, 0]
+        props:
+          capacity: 20000
+      hoppers:
+        - id: "hopper_1"
+          type: "Hopper"
+          position: [-5, 5, 0]
+          props: { chemical: "KNO3" }
+        - id: "hopper_2"
+          type: "Hopper"
+          position: [-2, 5, 0]
+          props: { chemical: "Ca(NO3)2" }
+        - id: "hopper_3"
+          type: "Hopper"
+          position: [1, 5, 0]
+          props: { chemical: "MgSO4" }
+    growing:
+      racks:
+        - id: "rack_1"
+          type: "Rack"
+          position: [10, 0, 10]
+          props: { length: 10, levels: 4 }
+        - id: "rack_2"
+          type: "Rack"
+          position: [10, 0, -10]
+          props: { length: 10, levels: 4 }
+      fans:
+        - id: "fan_1"
+          type: "Fan"
+          position: [20, 5, 0]
+          rotation: [0, -1.57, 0]
+      water_walls:
+        - id: "ww_1"
+          type: "WaterWall"
+          position: [-20, 2, 0]
+          rotation: [0, 1.57, 0]

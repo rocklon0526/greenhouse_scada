@@ -1,0 +1,12 @@
+{
+    "id": "mod_recipe",
+    "name": "Recipe & Batching Module",
+    "version": "1.0.0",
+    "description": "Manage and execute production recipes for the greenhouse.",
+    "author": "System",
+    "entry_points": {
+        "backend": "backend.router:router",
+        "frontend": "frontend/index.ts"
+    },
+    "dependencies": []
+}

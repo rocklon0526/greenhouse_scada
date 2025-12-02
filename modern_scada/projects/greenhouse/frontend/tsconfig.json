@@ -1,0 +1,23 @@
+{
+    "extends": "../../../platform/core/frontend/tsconfig.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@core/*": [
+                "../../../platform/core/frontend/src/*"
+            ],
+            "*": [
+                "*",
+                "../../../platform/node_modules/*"
+            ]
+        },
+        "typeRoots": [
+            "../../../platform/node_modules/@types",
+            "./node_modules/@types"
+        ],
+        "noEmit": true
+    },
+    "include": [
+        "**/*"
+    ]
+}

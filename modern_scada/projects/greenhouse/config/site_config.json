@@ -1,0 +1,145 @@
+{
+    "site_name": "Demo Greenhouse",
+    "zones": [
+        {
+            "id": "zone_a",
+            "name": "Planting Zone A",
+            "equipments": [
+                {
+                    "id": "fan_01",
+                    "name": "Exhaust Fan 1",
+                    "typeId": "var_speed_fan"
+                },
+                {
+                    "id": "fan_02",
+                    "name": "Circulation Fan",
+                    "typeId": "var_speed_fan"
+                }
+            ]
+        },
+        {
+            "id": "zone_b",
+            "name": "Nursery Room",
+            "equipments": [
+                {
+                    "id": "fan_03",
+                    "name": "Small Exhaust",
+                    "typeId": "var_speed_fan"
+                }
+            ]
+        }
+    ],
+    "devices": [
+        {
+            "id": "fan_01",
+            "name": "Exhaust Fan 1",
+            "type": "fan",
+            "visualization": {
+                "model_node": "Fan_01"
+            }
+        },
+        {
+            "id": "fan_02",
+            "name": "Circulation Fan",
+            "type": "fan",
+            "visualization": {
+                "model_node": "Fan_02"
+            }
+        }
+    ],
+    "racks": [
+        {
+            "id": "R-1A",
+            "position": [
+                -20,
+                0,
+                -20
+            ],
+            "levels": 4,
+            "width": 2,
+            "length": 10,
+            "height": 12
+        },
+        {
+            "id": "R-1B",
+            "position": [
+                -10,
+                0,
+                -20
+            ],
+            "levels": 4,
+            "width": 2,
+            "length": 10,
+            "height": 12
+        },
+        {
+            "id": "R-2A",
+            "position": [
+                10,
+                0,
+                -20
+            ],
+            "levels": 4,
+            "width": 2,
+            "length": 10,
+            "height": 12
+        },
+        {
+            "id": "R-2B",
+            "position": [
+                20,
+                0,
+                -20
+            ],
+            "levels": 4,
+            "width": 2,
+            "length": 10,
+            "height": 12
+        }
+    ],
+    "infrastructure": {
+        "waterWalls": [
+            {
+                "id": "ww_01",
+                "position": [
+                    0,
+                    10,
+                    -50
+                ],
+                "size": [
+                    20,
+                    15,
+                    2
+                ],
+                "color": "#3b82f6",
+                "label": "North Wall"
+            }
+        ],
+        "fans": [
+            {
+                "id": "fan_01",
+                "position": [
+                    40,
+                    15,
+                    -50
+                ],
+                "size": [
+                    4,
+                    4,
+                    2
+                ],
+                "color": "#ef4444",
+                "label": "Exhaust 1"
+            }
+        ],
+        "acUnits": [],
+        "weatherStation": {
+            "position": [
+                50,
+                0,
+                50
+            ],
+            "color": "#eab308"
+        }
+    }
+}

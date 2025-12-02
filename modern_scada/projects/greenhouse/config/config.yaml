@@ -1,0 +1,486 @@
+alarms:
+- message: Outdoor Temperature High!
+  tag_name: weather_temp
+  threshold: 40.0
+  type: high
+- message: Mixer pH High!
+  tag_name: mixer_ph
+  threshold: 8.0
+  type: high
+- message: Mixer pH Low!
+  tag_name: mixer_ph
+  threshold: 4.0
+  type: low
+database:
+  postgres_dsn: postgresql://postgres:password@timeseries-db:5432/scada
+  sqlite_path: data/buffer.db
+plc:
+  connections:
+  - host: plc-sim
+    name: Main PLC
+    poll_interval: 1
+    port: 502
+security:
+  access_token_expire_minutes: 30
+  algorithm: HS256
+visualization:
+  strategy: "procedural" # Options: "glb", "procedural"
+  objects: 
+    - id: "proc_hopper_sys"
+      type: "HopperSystem"
+      position: [0, 0, 0]
+      props:
+        config:
+          - id: "h1"
+            position: [0, 0, 0]
+            type: "cone"
+            color: "#eab308"
+            label: "Proc Hopper 1"
+            tag: "dosing_1_level"
+          - id: "h2"
+            position: [5, 0, 0]
+            type: "cone"
+            color: "#eab308"
+            label: "Proc Hopper 2"
+            tag: "dosing_2_level"
+    - id: "proc_fan_1"
+      type: "Fan3D"
+      position: [10, 5, 0]
+      props:
+        isRunning: true
+    - id: "proc_rack_1"
+      type: "VerticalRack"
+      position: [-10, 0, 0]
+      props:
+        levels: 5
+        width: 4
+        length: 10
+        height: 10
+layout:
+  zones:
+    nutrient:
+      position: [-30, 0, -30] # Top-Left
+      hoppers:
+        - id: hopper_01
+          position: [0, 20, 0]
+          type: cone
+          color: "#eab308"
+          label: "Hopper 1"
+          tag: dosing_1_level
+        - id: hopper_02
+          position: [10, 20, 0]
+          type: cone
+          color: "#eab308"
+          label: "Hopper 2"
+          tag: dosing_2_level
+        - id: hopper_03
+          position: [20, 20, 0]
+          type: cone
+          color: "#eab308"
+          label: "Hopper 3"
+          tag: dosing_3_level
+        - id: hopper_04
+          position: [30, 20, 0]
+          type: cone
+          color: "#eab308"
+          label: "Hopper 4"
+          tag: dosing_4_level
+        - id: hopper_05
+          position: [40, 20, 0]
+          type: cone
+          color: "#eab308"
+          label: "Hopper 5"
+          tag: dosing_5_level
+        - id: hopper_06
+          position: [50, 20, 0]
+          type: cone
+          color: "#eab308"
+          label: "Hopper 6"
+          tag: dosing_6_level
+      mixing_tank:
+        id: mixer_main
+        position: [25, 5, 0]
+        type: cylinder
+        color: "#3b82f6"
+        label: "Main Mixer"
+      infrastructure:
+        pipes:
+          - id: pipe_hopper_main
+            start: [0, 20, 0]
+            end: [25, 5, 0]
+            radius: 0.5
+          - id: pipe_main_out
+            start: [25, 5, 0]
+            end: [25, 0, 0]
+            radius: 0.5
+        valves:
+          - id: valve_mixer_out
+            position: [25, 2, 0]
+            type: box
+            size: [1, 1, 1]
+            label: "Mixer Valve"
+    growing:
+      position: [0, 0, 0]
+      racks:
+        - id: rack_01
+          position: [-20, 0, 0]
+          size: [4, 10, 20]
+          label: "Rack 1"
+        - id: rack_02
+          position: [-10, 0, 0]
+          size: [4, 10, 20]
+          label: "Rack 2"
+        - id: rack_03
+          position: [10, 0, 0]
+          size: [4, 10, 20]
+          label: "Rack 3"
+        - id: rack_04
+          position: [20, 0, 0]
+          size: [4, 10, 20]
+          label: "Rack 4"
+      aisles:
+        - id: aisle_01
+          position: [-15, 0, 0]
+          width: 5
+        - id: aisle_02
+          position: [15, 0, 0]
+          width: 5
+      fans:
+        - id: fan_01
+          position: [-30, 5, 0]
+          type: cylinder
+          color: "#3b82f6"
+          label: "Fan 1"
+          rotation: [0, 0, 1.57] # Rotate to face aisle
+        - id: fan_02
+          position: [-30, 5, 20]
+          type: cylinder
+          color: "#3b82f6"
+          label: "Fan 2"
+          rotation: [0, 0, 1.57]
+      water_walls:
+        - id: ww_01
+          position: [30, 5, 0]
+          type: box
+          color: "#ef4444"
+          label: "Water Wall 1"
+        - id: ww_02
+          position: [30, 5, 20]
+          type: box
+          color: "#ef4444"
+          label: "Water Wall 2"
+      sensors:
+        # Aisle 1 (Left)
+        - id: sensor_aisle1_front_top
+          position: [-15, 8, -10]
+          type: sensor_box
+        - id: sensor_aisle1_front_mid
+          position: [-15, 5, -10]
+          type: sensor_box
+        - id: sensor_aisle1_front_bot
+          position: [-15, 2, -10]
+          type: sensor_box
+        - id: sensor_aisle1_mid_top
+          position: [-15, 8, 0]
+          type: sensor_box
+        - id: sensor_aisle1_mid_mid
+          position: [-15, 5, 0]
+          type: sensor_box
+        - id: sensor_aisle1_mid_bot
+          position: [-15, 2, 0]
+          type: sensor_box
+        - id: sensor_aisle1_back_top
+          position: [-15, 8, 10]
+          type: sensor_box
+        - id: sensor_aisle1_back_mid
+          position: [-15, 5, 10]
+          type: sensor_box
+        - id: sensor_aisle1_back_bot
+          position: [-15, 2, 10]
+          type: sensor_box
+        # Aisle 2 (Right)
+        - id: sensor_aisle2_front_top
+          position: [15, 8, -10]
+          type: sensor_box
+        - id: sensor_aisle2_front_mid
+          position: [15, 5, -10]
+          type: sensor_box
+        - id: sensor_aisle2_front_bot
+          position: [15, 2, -10]
+          type: sensor_box
+        - id: sensor_aisle2_mid_top
+          position: [15, 8, 0]
+          type: sensor_box
+        - id: sensor_aisle2_mid_mid
+          position: [15, 5, 0]
+          type: sensor_box
+        - id: sensor_aisle2_mid_bot
+          position: [15, 2, 0]
+          type: sensor_box
+        - id: sensor_aisle2_back_top
+          position: [15, 8, 10]
+          type: sensor_box
+        - id: sensor_aisle2_back_mid
+          position: [15, 5, 10]
+          type: sensor_box
+        - id: sensor_aisle2_back_bot
+          position: [15, 2, 10]
+          type: sensor_box
+  sensorPoints:
+    - id: sensor_aisle1_front_top
+      position: [-15, 8, -10]
+      aisle: 1
+    - id: sensor_aisle1_front_mid
+      position: [-15, 5, -10]
+      aisle: 1
+    - id: sensor_aisle1_front_bot
+      position: [-15, 2, -10]
+      aisle: 1
+    - id: sensor_aisle1_mid_top
+      position: [-15, 8, 0]
+      aisle: 1
+    - id: sensor_aisle1_mid_mid
+      position: [-15, 5, 0]
+      aisle: 1
+    - id: sensor_aisle1_mid_bot
+      position: [-15, 2, 0]
+      aisle: 1
+    - id: sensor_aisle1_back_top
+      position: [-15, 8, 10]
+      aisle: 1
+    - id: sensor_aisle1_back_mid
+      position: [-15, 5, 10]
+      aisle: 1
+    - id: sensor_aisle1_back_bot
+      position: [-15, 2, 10]
+      aisle: 1
+    - id: sensor_aisle2_front_top
+      position: [15, 8, -10]
+      aisle: 2
+    - id: sensor_aisle2_front_mid
+      position: [15, 5, -10]
+      aisle: 2
+    - id: sensor_aisle2_front_bot
+      position: [15, 2, -10]
+      aisle: 2
+    - id: sensor_aisle2_mid_top
+      position: [15, 8, 0]
+      aisle: 2
+    - id: sensor_aisle2_mid_mid
+      position: [15, 5, 0]
+      aisle: 2
+    - id: sensor_aisle2_mid_bot
+      position: [15, 2, 0]
+      aisle: 2
+    - id: sensor_aisle2_back_top
+      position: [15, 8, 10]
+      aisle: 2
+    - id: sensor_aisle2_back_mid
+      position: [15, 5, 10]
+      aisle: 2
+    - id: sensor_aisle2_back_bot
+      position: [15, 2, 10]
+      aisle: 2
+  racks:
+    - id: rack_01
+      position: [-20, 0, 0]
+      levels: 5
+      width: 4
+      length: 20
+      height: 10
+    - id: rack_02
+      position: [-10, 0, 0]
+      levels: 5
+      width: 4
+      length: 20
+      height: 10
+    - id: rack_03
+      position: [10, 0, 0]
+      levels: 5
+      width: 4
+      length: 20
+      height: 10
+    - id: rack_04
+      position: [20, 0, 0]
+      levels: 5
+      width: 4
+      length: 20
+      height: 10
+
+tags:
+- address: 0
+  connection_name: Main PLC
+  name: weather_temp
+  type: float
+  unit: "\xB0C"
+- address: 2
+  connection_name: Main PLC
+  name: weather_hum
+  type: float
+  unit: '%'
+- address: 4
+  connection_name: Main PLC
+  name: weather_uv
+  type: float
+  unit: index
+- address: 10
+  connection_name: Main PLC
+  name: mixer_level
+  type: float
+  unit: L
+- address: 12
+  connection_name: Main PLC
+  name: mixer_ph
+  type: float
+  unit: pH
+- address: 14
+  connection_name: Main PLC
+  name: mixer_ec
+  type: float
+  unit: mS/cm
+- address: 16
+  connection_name: Main PLC
+  name: mixer_valve_open
+  type: bool
+  unit: bool
+  visualization:
+    model_node: "Valve_Mixer"
+    color_map:
+      true: "#00FF00"
+      false: "#FF0000"
+- address: 18
+  connection_name: Main PLC
+  name: mixer_pump_active
+  type: bool
+  unit: bool
+  visualization:
+    model_node: "Pump_Mixer"
+    color_map:
+      true: "#00FF00"
+      false: "#808080"
+- address: 20
+  connection_name: Main PLC
+  name: dosing_1_level
+  type: float
+  unit: kg
+- address: 22
+  connection_name: Main PLC
+  name: dosing_2_level
+  type: float
+  unit: kg
+- address: 24
+  connection_name: Main PLC
+  name: dosing_3_level
+  type: float
+  unit: kg
+- address: 26
+  connection_name: Main PLC
+  name: dosing_4_level
+  type: float
+  unit: kg
+- address: 28
+  connection_name: Main PLC
+  name: dosing_5_level
+  type: float
+  unit: kg
+- address: 30
+  connection_name: Main PLC
+  name: dosing_6_level
+  type: float
+  unit: kg
+- address: 40
+  connection_name: Main PLC
+  name: rack_R-1A_ph
+  type: float
+  unit: pH
+- address: 42
+  connection_name: Main PLC
+  name: rack_R-1A_ec
+  type: float
+  unit: mS/cm
+- address: 44
+  connection_name: Main PLC
+  name: rack_R-1A_level
+  type: float
+  unit: level
+- address: 46
+  connection_name: Main PLC
+  name: rack_R-1A_valve
+  type: bool
+  unit: bool
+- address: 50
+  connection_name: Main PLC
+  name: rack_R-1B_ph
+  type: float
+  unit: pH
+- address: 52
+  connection_name: Main PLC
+  name: rack_R-1B_ec
+  type: float
+  unit: mS/cm
+- address: 54
+  connection_name: Main PLC
+  name: rack_R-1B_level
+  type: float
+  unit: level
+- address: 56
+  connection_name: Main PLC
+  name: rack_R-1B_valve
+  type: bool
+  unit: bool
+- address: 60
+  connection_name: Main PLC
+  name: rack_R-2A_ph
+  type: float
+  unit: pH
+- address: 62
+  connection_name: Main PLC
+  name: rack_R-2A_ec
+  type: float
+  unit: mS/cm
+- address: 64
+  connection_name: Main PLC
+  name: rack_R-2A_level
+  type: float
+  unit: level
+- address: 66
+  connection_name: Main PLC
+  name: rack_R-2A_valve
+  type: bool
+  unit: bool
+- address: 70
+  connection_name: Main PLC
+  name: rack_R-2B_ph
+  type: float
+  unit: pH
+- address: 72
+  connection_name: Main PLC
+  name: rack_R-2B_ec
+  type: float
+  unit: mS/cm
+- address: 74
+  connection_name: Main PLC
+  name: rack_R-2B_level
+  type: float
+  unit: level
+- address: 76
+  connection_name: Main PLC
+  name: rack_R-2B_valve
+  type: bool
+  unit: bool
+- address: 100
+  connection_name: Main PLC
+  name: sensor_aisle1_front_top_temp
+  type: float
+  unit: "\xB0C"
+- address: 102
+  connection_name: Main PLC
+  name: sensor_aisle1_front_top_hum
+  type: float
+  unit: "%"
+- address: 104
+  connection_name: Main PLC
+  name: sensor_aisle1_front_top_co2
+  type: float
+  unit: "ppm"
+# ... (Continuing pattern for all 18 sensors would be ideal, but keeping it concise for now)

@@ -1,0 +1,62 @@
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "useDefineForClassFields": true,
+        "lib": [
+            "ES2020",
+            "DOM",
+            "DOM.Iterable"
+        ],
+        "module": "ESNext",
+        "skipLibCheck": true,
+        /* Bundler mode */
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noEmit": true,
+        "jsx": "react-jsx",
+        /* Linting */
+        "strict": true,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+        "noFallthroughCasesInSwitch": true,
+        /* Path Aliases */
+        "baseUrl": ".",
+        "paths": {
+            "@core/*": [
+                "./src/*"
+            ],
+            "@modules/*": [
+                "../../modules/*"
+            ],
+            "@projects/*": [
+                "../../../projects/*"
+            ],
+            "lucide-react": [
+                "./node_modules/lucide-react"
+            ],
+            "react-router-dom": [
+                "./node_modules/react-router-dom"
+            ]
+        }
+    },
+    "include": [
+        "src",
+        "../../modules",
+        "../../../projects"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "build",
+        "**/_deprecated_legacy",
+        "**/*.spec.ts",
+        "**/*.test.ts"
+    ],
+    "references": [
+        {
+            "path": "./tsconfig.node.json"
+        }
+    ]
+}

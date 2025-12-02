@@ -1,0 +1,14 @@
+{
+    "name": "modern-scada-platform",
+    "private": true,
+    "workspaces": [
+        "core/frontend",
+        "modules"
+    ],
+    "scripts": {
+        "install:all": "npm install"
+    },
+    "dependencies": {
+        "lucide-react": "^0.555.0"
+    }
+}
