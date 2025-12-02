@@ -4,14 +4,26 @@ FROM node:18-alpine as build
 WORKDIR /app
 
 # Copy package files
-COPY platform/core/frontend/package.json platform/core/frontend/package-lock.json ./
-RUN npm ci
+COPY platform/core/frontend/package.json ./
+
+# 強制修正依賴版本
+RUN npm pkg set devDependencies.@types/react="18.2.64" \
+    && npm pkg set devDependencies.@types/react-dom="18.2.21"
+
+# 安裝依賴
+RUN npm install
 
 # Copy core frontend source
 COPY platform/core/frontend ./platform/core/frontend
 
 # Copy modules
 COPY platform/modules ./platform/modules
+
+# ▼▼▼ 關鍵修正：複製 projects 資料夾，讓 TypeScript 能找到這些檔案 ▼▼▼
+COPY projects ./projects
+
+# 覆蓋修正後的 package.json
+RUN cp package.json platform/core/frontend/package.json
 
 # Adjust WORKDIR to build
 WORKDIR /app/platform/core/frontend
