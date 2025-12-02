@@ -9,19 +9,20 @@
         ],
         "module": "ESNext",
         "skipLibCheck": true,
-        /* Bundler mode */
         "moduleResolution": "bundler",
         "allowImportingTsExtensions": true,
         "resolveJsonModule": true,
         "isolatedModules": true,
         "noEmit": true,
         "jsx": "react-jsx",
-        /* Linting */
         "strict": true,
         "noUnusedLocals": false,
         "noUnusedParameters": false,
         "noFallthroughCasesInSwitch": true,
-        /* Path Aliases */
+        "types": [
+            "vite/client",
+            "node"
+        ],
         "baseUrl": ".",
         "paths": {
             "@core/*": [
@@ -38,6 +39,31 @@
             ],
             "react-router-dom": [
                 "./node_modules/react-router-dom"
+            ],
+            /* ▼▼▼ 關鍵修正與新增 ▼▼▼ */
+            /* 1. 修正 React 主體與 JSX Runtime */
+            "react": [
+                "./node_modules/@types/react"
+            ],
+            "react/jsx-runtime": [
+                "./node_modules/@types/react/jsx-runtime"
+            ],
+            "react-dom": [
+                "./node_modules/@types/react-dom"
+            ],
+            /* 2. 修正 Three.js 與 R3F (解決 primitive/group 錯誤) */
+            "three": [
+                "./node_modules/@types/three"
+            ],
+            "@react-three/fiber": [
+                "./node_modules/@react-three/fiber"
+            ],
+            "@react-three/drei": [
+                "./node_modules/@react-three/drei"
+            ],
+            /* 3. 萬用字元 (保留作為最後防線) */
+            "*": [
+                "./node_modules/*"
             ]
         }
     },

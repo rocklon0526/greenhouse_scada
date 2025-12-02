@@ -46,8 +46,8 @@ const SensorGroup: React.FC<{ data: SensorData }> = ({ data }) => {
       {/* 感測器球體 */}
       <mesh
         onClick={handleMeshClick}
-        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
-        onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
+        onPointerOver={(e: any) => { e.stopPropagation(); setHovered(true); }}
+        onPointerOut={(e: any) => { e.stopPropagation(); setHovered(false); }}
       >
         <sphereGeometry args={[0.6, 32, 32]} />
         <meshStandardMaterial

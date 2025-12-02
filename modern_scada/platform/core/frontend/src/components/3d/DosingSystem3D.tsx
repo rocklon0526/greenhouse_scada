@@ -12,7 +12,7 @@ const DosingTank = ({ data, position, color, labelOffset }: any) => {
   return (
     <group
       position={position}
-      onClick={(e) => { e.stopPropagation(); selectDosingTank(data.id); }}
+      onClick={(e: any) => { e.stopPropagation(); selectDosingTank(data.id); }}
       onPointerOver={() => document.body.style.cursor = 'pointer'}
       onPointerOut={() => document.body.style.cursor = 'auto'}
     >
@@ -61,7 +61,7 @@ export const DosingSystem3D = () => {
       {/* 3. 下層：調配桶 (Mixing Tank) */}
       <group position={[0, -2.5, 0]}>
         <mesh
-          onClick={(e) => { e.stopPropagation(); selectMixer(true); }}
+          onClick={(e: any) => { e.stopPropagation(); selectMixer(true); }}
           onPointerOver={() => document.body.style.cursor = 'pointer'}
           onPointerOut={() => document.body.style.cursor = 'auto'}
         >

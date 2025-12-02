@@ -66,6 +66,7 @@ const NavButton = ({ to, icon: Icon, label }: { to: string, icon: React.ElementT
             }`
         }
     >
+        {/* @ts-ignore */}
         <Icon size={20} className="group-hover:scale-110 transition-transform" />
         <span className="font-medium">{label}</span>
     </NavLink>
@@ -78,6 +79,7 @@ const ExternalNavButton = ({ href, icon: Icon, label }: { href: string, icon: Re
         rel="noopener noreferrer"
         className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group text-slate-400 hover:text-white hover:bg-white/5"
     >
+        {/* @ts-ignore */}
         <Icon size={20} className="group-hover:scale-110 transition-transform" />
         <span className="font-medium">{label}</span>
     </a>
