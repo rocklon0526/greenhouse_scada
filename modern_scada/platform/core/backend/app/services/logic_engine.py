@@ -1,5 +1,6 @@
 import logging
 import json
+import os
 import time
 from datetime import datetime
 from typing import Dict, List, Any, Optional
@@ -22,6 +23,9 @@ class LogicEngine:
         self.rule_states = {}  # {rule_id: {"active": bool, "last_run": timestamp, "start_time": timestamp}}
         self.global_settings = {"temp_threshold": 28.0, "hum_threshold": 80.0}
         self.tag_values = {} # Cache of latest sensor values
+        
+        # Path Handling
+        self.rules_path = os.getenv("LOGIC_RULES_PATH", "logic_rules.json")
         
         # Redis Integration
         try:
@@ -73,23 +77,28 @@ class LogicEngine:
 
     def load_rules(self):
         try:
-            with open("logic_rules.json", "r") as f:
+            with open(self.rules_path, "r") as f:
                 data = json.load(f)
                 self.rules = data.get("rules", [])
                 self.global_settings = data.get("globals", self.global_settings)
-            logger.info(f"Loaded {len(self.rules)} logic rules.")
+            logger.info(f"Loaded {len(self.rules)} logic rules from {self.rules_path}.")
         except FileNotFoundError:
-            logger.warning("logic_rules.json not found. Starting with empty rules.")
+            logger.warning(f"{self.rules_path} not found. Starting with empty rules.")
             self.rules = []
         except Exception as e:
-            logger.error(f"Failed to load rules: {e}")
+            logger.error(f"Failed to load rules from {self.rules_path}: {e}")
 
     def save_rules(self):
         try:
-            with open("logic_rules.json", "w") as f:
+            # Ensure directory exists
+            directory = os.path.dirname(self.rules_path)
+            if directory and not os.path.exists(directory):
+                os.makedirs(directory, exist_ok=True)
+
+            with open(self.rules_path, "w") as f:
                 json.dump({"globals": self.global_settings, "rules": self.rules}, f, indent=2)
         except Exception as e:
-            logger.error(f"Failed to save rules: {e}")
+            logger.error(f"Failed to save rules to {self.rules_path}: {e}")
 
     async def evaluate(self, tag_name: str, value: float):
         # Update cache
