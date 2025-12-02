@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from app.services.data_service import DataService
+from services.redis_service import RedisService
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,54 @@ class LogicEngine:
         self.rule_states = {}  # {rule_id: {"active": bool, "last_run": timestamp, "start_time": timestamp}}
         self.global_settings = {"temp_threshold": 28.0, "hum_threshold": 80.0}
         self.tag_values = {} # Cache of latest sensor values
+        
+        # Redis Integration
+        try:
+            self.redis = RedisService()
+            if self.redis.health_check():
+                logger.info("LogicEngine: Redis connected.")
+                self.load_states_from_redis()
+            else:
+                logger.warning("LogicEngine: Redis health check failed. Running in memory-only mode.")
+                self.redis = None
+        except Exception as e:
+            logger.error(f"LogicEngine: Failed to connect to Redis: {e}. Running in memory-only mode.")
+            self.redis = None
+            
         self.load_rules()
+
+    def load_states_from_redis(self):
+        """Load persisted rule states from Redis."""
+        if not self.redis:
+            return
+            
+        try:
+            # Assuming we store states in a Hash named "scada:logic:states"
+            states = self.redis.client.hgetall("scada:logic:states")
+            for rule_id, state_json in states.items():
+                # Handle Redis Bytes type
+                if isinstance(rule_id, bytes):
+                    rule_id = rule_id.decode('utf-8')
+                if isinstance(state_json, bytes):
+                    state_json = state_json.decode('utf-8')
+
+                try:
+                    self.rule_states[rule_id] = json.loads(state_json)
+                except json.JSONDecodeError:
+                    logger.error(f"Failed to decode state for rule {rule_id}")
+            logger.info(f"Loaded {len(self.rule_states)} rule states from Redis.")
+        except Exception as e:
+            logger.error(f"Failed to load states from Redis: {e}")
+
+    def save_state_to_redis(self, rule_id: str, state: Dict):
+        """Save a single rule state to Redis."""
+        if not self.redis:
+            return
+            
+        try:
+            self.redis.client.hset("scada:logic:states", rule_id, json.dumps(state))
+        except Exception as e:
+            logger.error(f"Failed to save state for rule {rule_id} to Redis: {e}")
 
     def load_rules(self):
         try:
@@ -93,8 +141,9 @@ class LogicEngine:
             if run_duration < min_run_time:
                 logger.info(f"Rule {rule_id} wants to stop but min_run_time ({run_duration:.1f}/{min_run_time}s) not met.")
                 should_stop = False # Force keep running
-
+ 
         # 4. Execute Actions
+        state_changed = False
         if should_start and not state["active"]:
             # START
             logger.info(f"Rule {rule_id} STARTED. Value: {value}")
@@ -102,6 +151,7 @@ class LogicEngine:
             state["active"] = True
             state["start_time"] = now
             self.rule_states[rule_id] = state
+            state_changed = True
             
         elif should_stop and state["active"]:
             # STOP
@@ -109,6 +159,10 @@ class LogicEngine:
             await self.execute_actions(rule["actions"], 0.0)
             state["active"] = False
             self.rule_states[rule_id] = state
+            state_changed = True
+            
+        if state_changed:
+            self.save_state_to_redis(rule_id, state)
 
     def get_active_threshold(self, rule: Dict) -> float:
         """

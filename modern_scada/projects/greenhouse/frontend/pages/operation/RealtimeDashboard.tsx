@@ -45,14 +45,14 @@ const RealtimeDashboard: React.FC = () => {
 
             {/* Render Zones */}
             <div className="space-y-10">
-                {layout.zones.map((zone) => (
+                {layout.zones.map((zone: any) => (
                     <section key={zone.id}>
                         <h2 className="text-xl font-semibold text-slate-300 mb-4 border-l-4 border-blue-500 pl-3">
                             {zone.name}
                         </h2>
 
                         <div className="flex flex-wrap gap-6">
-                            {zone.equipments.map((equip) => (
+                            {zone.equipments.map((equip: any) => (
                                 <EquipmentRenderer key={equip.id} config={equip} />
                             ))}
                         </div>

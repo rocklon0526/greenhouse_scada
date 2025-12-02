@@ -8,6 +8,8 @@ from app.services.state_builder import StateBuilder
 
 logger = logging.getLogger(__name__)
 
+import struct
+
 async def poll_single_plc(connection_config, processor):
     client = AsyncModbusTcpClient(connection_config.host, port=connection_config.port)
     
@@ -21,51 +23,77 @@ async def poll_single_plc(connection_config, processor):
             ]
             
             if not connection_tags:
-                # If no tags assigned, skip or read nothing
-                # logger.debug(f"No tags configured for {connection_config.name}")
                 return
 
-            # Find max address to read enough registers
-            max_addr = 0
-            for tag in connection_tags:
-                # float32 takes 2 registers
-                end_addr = tag.address + 2
-                if end_addr > max_addr:
-                    max_addr = end_addr
-            
-            # Read in chunks of 100 registers to avoid Modbus limit (usually 125)
-            all_registers = []
-            CHUNK_SIZE = 100
-            
-            # We need to read up to max_addr
-            # But we can't just append, we need to place them correctly or just read the whole range in chunks
-            # Simpler: Initialize a list of None or 0 up to max_addr, then fill it
-            # Even simpler: Just read 0-100, 100-200, 200-300... and concatenate
-            
-            current_addr = 0
-            read_error = False
-            
-            while current_addr < max_addr:
-                count = min(CHUNK_SIZE, max_addr - current_addr)
-                rr = await client.read_holding_registers(current_addr, count=count, device_id=1)
+            # 1. Sort tags by address
+            connection_tags.sort(key=lambda x: x.address)
+
+            # 2. Dynamic Grouping
+            groups = []
+            if connection_tags:
+                current_group_tags = [connection_tags[0]]
+                current_start = connection_tags[0].address
+                # Assuming float32 takes 2 registers
+                current_end = current_start + 2
                 
-                if rr.isError():
-                    logger.error(f"Modbus Error on {connection_config.name} at addr {current_addr}: {rr}")
-                    read_error = True
-                    break
+                for tag in connection_tags[1:]:
+                    tag_start = tag.address
+                    tag_end = tag_start + 2
+                    
+                    # Calculate gap from the end of the previous tag
+                    prev_tag = current_group_tags[-1]
+                    prev_end = prev_tag.address + 2
+                    gap = tag_start - prev_end
+                    
+                    # Calculate potential new length of the group
+                    new_group_end = max(current_end, tag_end)
+                    total_len = new_group_end - current_start
+                    
+                    # Grouping rules: Gap <= 20 AND Total Length <= 100
+                    if gap <= 20 and total_len <= 100:
+                        current_group_tags.append(tag)
+                        current_end = new_group_end
+                    else:
+                        # Finalize current group
+                        groups.append((current_start, current_end - current_start, current_group_tags))
+                        # Start new group
+                        current_group_tags = [tag]
+                        current_start = tag_start
+                        current_end = tag_end
                 
-                all_registers.extend(rr.registers)
-                current_addr += count
-            
-            if not read_error:
-                import struct
-                for tag in connection_tags:
-                    # Check if we have enough data for this tag
-                    if tag.address + 1 < len(all_registers):
-                        regs = all_registers[tag.address:tag.address+2]
-                        b = struct.pack('>HH', regs[0], regs[1])
-                        val = struct.unpack('>f', b)[0]
-                        await processor.process_data(tag.name, val)
+                # Append the last group
+                groups.append((current_start, current_end - current_start, current_group_tags))
+
+            # 3. Optimized Reading
+            for start_addr, count, group_tags in groups:
+                try:
+                    rr = await client.read_holding_registers(start_addr, count=count, device_id=1)
+                    
+                    if rr.isError():
+                        logger.error(f"Modbus Error on {connection_config.name} group {start_addr}-{start_addr+count}: {rr}")
+                        continue
+                    
+                    registers = rr.registers
+                    
+                    # 4. Map Data
+                    for tag in group_tags:
+                        # Calculate relative offset in the read buffer
+                        offset = tag.address - start_addr
+                        
+                        # Ensure we have enough data for this tag (2 registers for float32)
+                        if offset >= 0 and offset + 1 < len(registers):
+                            regs = registers[offset:offset+2]
+                            try:
+                                b = struct.pack('>HH', regs[0], regs[1])
+                                val = struct.unpack('>f', b)[0]
+                                await processor.process_data(tag.name, val)
+                            except Exception as e:
+                                logger.error(f"Error decoding tag {tag.name}: {e}")
+                                
+                except Exception as e:
+                    logger.error(f"Error reading group starting at {start_addr} on {connection_config.name}: {e}")
+                    # Continue to next group instead of breaking
+                    
         else:
             logger.warning(f"PLC {connection_config.name} disconnected")
             
