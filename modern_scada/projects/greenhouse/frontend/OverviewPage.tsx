@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo } from 'react';
-import { XCircle, CloudSun, Beaker, Droplets, Activity, Zap, ArrowRightCircle, Loader2 } from 'lucide-react';
+import { usePermission } from '@core/hooks/usePermission';
+import { XCircle, CloudSun, Beaker, Droplets, Activity, Zap, ArrowRightCircle, Loader2, Database } from 'lucide-react';
 import { useAppStore } from '@core/stores/useAppStore';
+
 import { Generic3DViewer } from '@modules/mod_3d_viewer/Generic3DViewer';
 import { translations } from '@core/i18n/translations';
 
-// --- 子元件保持不變 ---
+// --- 子元件 ---
+
 const DetailCard = ({ title, subTitle, onClose, children }: { title: string, subTitle?: string, onClose: () => void, children: React.ReactNode }) => (
-  <div className="absolute top-24 right-6 w-80 bg-slate-900/95 backdrop-blur-xl border border-blue-500/30 rounded-2xl p-5 shadow-2xl z-20 animate-in slide-in-from-right-10 fade-in duration-300">
+  <div className="absolute top-32 right-6 w-72 bg-slate-900/90 backdrop-blur-xl border border-blue-500/30 rounded-xl p-4 shadow-2xl z-20 animate-in slide-in-from-right-10 fade-in duration-300">
     <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-700">
       <div>
         <h3 className="text-blue-400 font-bold text-lg">{title}</h3>
@@ -80,6 +83,8 @@ const DosingTankPanel = () => {
 const MixerPanel = () => {
   const { isMixerSelected, mixerData, clearSelection, toggleMixerValve, toggleMixerPump, language } = useAppStore() as any;
   const t = translations[language as keyof typeof translations] || translations.en;
+  const canControl = usePermission('START_MACHINE');
+
   if (!isMixerSelected) return null;
 
   const MAX_CAPACITY = 20000;
@@ -107,13 +112,21 @@ const MixerPanel = () => {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <button onClick={toggleMixerValve} className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all active:scale-95 ${mixerData.valveOpen ? 'bg-green-900/20 border-green-500 text-green-400 shadow-green-900/20 shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`}>
+          <button
+            onClick={canControl ? toggleMixerValve : undefined}
+            disabled={!canControl}
+            className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all active:scale-95 ${mixerData.valveOpen ? 'bg-green-900/20 border-green-500 text-green-400 shadow-green-900/20 shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'} ${!canControl ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
             <div className={`p-2 rounded-full ${mixerData.valveOpen ? 'bg-green-500/20' : 'bg-slate-700'}`}><Droplets size={20} /></div>
             <div className="text-xs font-bold uppercase">{t.mainValve}</div>
             <div className="text-[10px] opacity-70">{mixerData.valveOpen ? 'OPEN' : 'CLOSED'}</div>
           </button>
 
-          <button onClick={toggleMixerPump} className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all active:scale-95 ${mixerData.pumpActive ? 'bg-blue-900/20 border-blue-500 text-blue-400 shadow-blue-900/20 shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`}>
+          <button
+            onClick={canControl ? toggleMixerPump : undefined}
+            disabled={!canControl}
+            className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all active:scale-95 ${mixerData.pumpActive ? 'bg-blue-900/20 border-blue-500 text-blue-400 shadow-blue-900/20 shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'} ${!canControl ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
             <div className={`p-2 rounded-full ${mixerData.pumpActive ? 'bg-blue-500/20' : 'bg-slate-700'}`}><Zap size={20} /></div>
             <div className="text-xs font-bold uppercase">{t.feedPump}</div>
             <div className="text-[10px] opacity-70">{mixerData.pumpActive ? 'ON' : 'OFF'}</div>
@@ -130,38 +143,24 @@ const MixerPanel = () => {
 };
 
 const RackTankPanel = () => {
-  const { selectedRackTankId, rackTanks, clearSelection, startTransferProcess } = useAppStore() as any;
-  const tank = selectedRackTankId ? rackTanks[selectedRackTankId] : null;
-  if (!tank) return null;
+  const { selectedRackId, clearSelection } = useAppStore() as any;
+  if (!selectedRackId) return null;
 
   return (
-    <DetailCard title={`Rack ${tank.rackId}`} subTitle="Local Nutrient Supply" onClose={clearSelection}>
-      <div className="space-y-4">
-        <div className={`flex items-center gap-3 p-3 rounded-lg border ${tank.valveOpen ? 'bg-green-900/20 border-green-500/50' : 'bg-slate-800/50 border-slate-700'}`}>
-          <div className={`p-2 rounded-full ${tank.valveOpen ? 'bg-green-500/20 text-green-400 animate-pulse' : 'bg-slate-700 text-slate-400'}`}><Droplets size={20} /></div>
-          <div><div className="text-xs text-slate-400 uppercase">Supply Status</div><div className={`text-lg font-bold ${tank.valveOpen ? 'text-green-400' : 'text-slate-300'}`}>{tank.valveOpen ? 'FILLING' : 'IDLE'}</div></div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700"><div className="text-xs text-slate-400 uppercase mb-1">PH Level</div><div className="text-xl font-mono font-bold text-white">{tank.ph}</div></div>
-          <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700"><div className="text-xs text-slate-400 uppercase mb-1">EC Level</div><div className="text-xl font-mono font-bold text-yellow-400">{tank.ec}</div></div>
-        </div>
-        <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
-          <div className="flex justify-between items-end mb-1"><span className="text-xs text-slate-400 uppercase">Tank Level</span><span className="text-sm font-mono font-bold text-blue-300">Level {tank.level}</span></div>
-          <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden flex gap-0.5">{[1, 2, 3, 4].map(l => (<div key={l} className={`flex-1 h-full rounded-sm ${tank.level >= l ? 'bg-blue-500' : 'bg-slate-600/30'}`}></div>))}</div>
-        </div>
-        <button onClick={() => startTransferProcess(tank.rackId)} disabled={tank.level > 1 || tank.status === 'FILLING'} className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-900/20">
-          <ArrowRightCircle size={20} />{tank.status === 'FILLING' ? 'Refilling...' : 'Start Refill Task'}
-        </button>
+    <DetailCard title={`Rack ${selectedRackId}`} subTitle="Growth Unit Details" onClose={clearSelection}>
+      <div className="flex flex-col items-center justify-center py-8 text-slate-500 space-y-2">
+        <Database size={32} />
+        <span className="text-sm">Rack data visualization</span>
       </div>
     </DetailCard>
   );
-};
+}
 
 const WeatherPanel = () => {
   const { weatherStation, language } = useAppStore() as any;
   const t = translations[language as keyof typeof translations] || translations.en;
   return (
-    <div className="absolute top-24 left-6 w-56 bg-slate-900/80 backdrop-blur-md border border-purple-500/30 rounded-2xl p-4 shadow-xl pointer-events-none z-10">
+    <div className="absolute top-32 left-6 w-48 bg-slate-900/80 backdrop-blur-md border border-purple-500/30 rounded-xl p-3 shadow-xl z-50">
       <div className="flex items-center gap-2 mb-3 text-purple-400"><CloudSun size={20} /><span className="font-bold text-sm uppercase">{t.outdoorWeather}</span></div>
       <div className="grid grid-cols-2 gap-3">
         <div><div className="text-xs text-slate-400">Temp</div><div className="text-xl font-mono font-bold text-white">{typeof weatherStation.temp === 'number' ? weatherStation.temp.toFixed(2) : weatherStation.temp}°</div></div>
@@ -177,14 +176,13 @@ const WeatherPanel = () => {
 const OverviewPage = () => {
   const { initSystem, devices, layoutConfig } = useAppStore() as any;
 
-  // 1. useEffect (Hook) - 必須放在最上面
+  // 1. useEffect (Hook) - 必须放在最上面
   useEffect(() => {
     const cleanup = initSystem();
     return cleanup;
   }, [initSystem]);
 
-  // 2. useMemo (Hook) - 必須在 if return 之前執行！
-  //    我們在內部處理 layoutConfig 為 null 的情況，確保 Hook 總是會被執行。
+  // 2. useMemo (Mapping) - 必须在 return 之前执行
   const visualizationMapping = useMemo(() => {
     if (!layoutConfig || !layoutConfig.zones) return {};
     const mapping: Record<string, string> = {};
@@ -207,7 +205,113 @@ const OverviewPage = () => {
     return mapping;
   }, [layoutConfig]);
 
-  // 3. 條件渲染 (Conditional Rendering) - 必須放在所有 Hooks 之後！
+  // 3. useMemo (Objects) - 必须在 return 之前执行
+  const proceduralObjects = useMemo(() => {
+    if (!layoutConfig?.zones) return [];
+
+    const objects: any[] = [];
+    const { nutrient, growing } = layoutConfig.zones;
+
+    // ==========================================
+    // 1. 左側配液區 (Nutrient Zone)
+    // ==========================================
+
+    // 使用 DosingSystem 整合元件 (包含 Mixer, Hoppers, Valves)
+    objects.push({
+      id: 'sys_dosing',
+      type: 'DosingSystemWidget',
+      position: [0, 0, 0], // 內部有絕對座標邏輯 (-40, 0, -25)
+      props: {}
+    });
+
+    // ==========================================
+    // 2. 右側種植區 (Growing Zone)
+    // ==========================================
+
+    // 收集所有 RackNutrientTank 的位置資訊，傳給 WaterPipeSystem
+    const tankPositions = growing?.racks?.map((rack: any, index: number) => {
+      const xPos = 10 + (index * 12);
+      return {
+        id: rack.id,
+        position: [xPos - 3, 0, 12] // 必須與 RackNutrientTankWidget 的位置一致
+      };
+    }) || [];
+
+    if (growing?.racks) {
+      growing.racks.forEach((rack: any, index: number) => {
+        const xPos = 10 + (index * 12);
+
+        // A. 機架 (Racks)
+        objects.push({
+          id: rack.id,
+          type: 'RackWidget',
+          position: [xPos, 0, 0],
+          props: {
+            data: {
+              ...rack,
+              position: [xPos, 0, 0] // Override position to avoid double offset
+            }
+          }
+        });
+
+        // B. 機架前的藍色配液桶 (RackNutrientTank)
+        objects.push({
+          id: `${rack.id}_tank`,
+          type: 'RackNutrientTankWidget',
+          position: [xPos - 3, 0, 12], // 放在機架前方 (Z=12)
+          props: {
+            data: {
+              rackId: rack.id,
+              position: [0, 0, 0], // Relative to the wrapper group
+              level: 4, // Default level (Full)
+              ph: 6.5,
+              ec: 2.0,
+              valveOpen: false,
+              pumpActive: false
+            }
+          }
+        });
+      });
+    }
+
+    // ==========================================
+    // 3. 基礎設施 (Infrastructure) - 水牆與風扇
+    // ==========================================
+    // 這裡我們將原本分散的 WaterWall 整合進 Infrastructure
+
+    if (growing?.fans) {
+      growing.fans.forEach((fan: any, index: number) => {
+        const xPos = 10 + (index * 12);
+
+        // 負壓風扇
+        objects.push({
+          id: fan.id,
+          type: 'FanWidget',
+          position: [xPos - 3, 0, 12],
+          props: {
+            config: layoutConfig.infrastructure
+          }
+        });
+      });
+    }
+    // ==========================================
+    // 4. 連接管線 (Pipes) - 自動計算路徑
+    // ==========================================
+    objects.push({
+      id: 'sys_pipes',
+      type: 'WaterPipeWidget',
+      position: [0, 0, 0],
+      props: {
+        config: {
+          tanks: tankPositions
+        }
+      }
+    });
+
+    return objects;
+  }, [layoutConfig]);
+
+  // 4. Conditional Rendering (Early Return) - 必须在所有 Hooks 之后
   if (!layoutConfig) {
     return (
       <div className="w-full h-screen bg-slate-950 flex items-center justify-center text-slate-400">
@@ -217,11 +321,11 @@ const OverviewPage = () => {
   }
 
   return (
-    <div className="w-full h-screen relative overflow-hidden bg-slate-950">
+    <div className="w-full h-full relative overflow-hidden bg-slate-950">
       {/* UI Overlay Layer */}
-      <div className="absolute inset-0 z-10 pointer-events-none">
+      <div className="absolute inset-0 z-50 pointer-events-none">
         <div className="pointer-events-auto">
-          <WeatherPanel />
+          {/* <WeatherPanel /> */}
           <SensorDetailPanel />
           <DosingTankPanel />
           <MixerPanel />
@@ -230,12 +334,14 @@ const OverviewPage = () => {
       </div>
 
       {/* 3D Viewer Layer (z-0) */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 pointer-events-auto">
         <Generic3DViewer
-          // 【已修正】移除了 modelUrl，強制啟用 Procedural Mode (程式碼生成)
           mapping={visualizationMapping}
           values={devices}
-          visualizationConfig={layoutConfig?.visualization}
+          visualizationConfig={layoutConfig.visualization || {
+            strategy: 'procedural',
+            objects: proceduralObjects
+          }}
         />
       </div>
     </div>

@@ -34,12 +34,36 @@ class AlarmConfig(BaseModel):
     threshold: float
     message: str
 
+class HttpSourceTag(BaseModel):
+    """Tag mapping for HTTP source data extraction"""
+    name: str  # SCADA tag name
+    json_key: str  # Dot-notation path in JSON (e.g., "data.sensors.temp")
+
+class HttpSourceConfig(BaseModel):
+    """HTTP REST API data source configuration"""
+    url: str
+    method: str = "GET"  # GET or POST
+    interval: float = 5.0  # Polling interval in seconds
+    timeout: Optional[float] = 10.0  # Request timeout
+    headers: Optional[dict] = None  # Optional HTTP headers
+    body: Optional[dict] = None  # Optional request body for POST
+    tags: List[HttpSourceTag]  # List of tags to extract from response
+
+class VendorControlConfig(BaseModel):
+    """Vendor HTTP control endpoint configuration"""
+    url: str  # Control endpoint URL
+    timeout: float = 10.0  # Request timeout
+    headers: Optional[dict] = None  # Optional HTTP headers (e.g., API keys)
+    device_prefix: str = "nursery_"  # Device ID prefix to identify vendor devices
+
 class AppConfig(BaseModel):
     database: DatabaseConfig
     plc: PLCConfig
     security: SecurityConfig
     tags: List[TagConfig]
     alarms: List[AlarmConfig]
+    http_sources: Optional[List[HttpSourceConfig]] = []  # HTTP API sources
+    vendor_control: Optional[VendorControlConfig] = None  # Vendor HTTP control
 
 class Settings(BaseSettings):
     SECRET_KEY: str

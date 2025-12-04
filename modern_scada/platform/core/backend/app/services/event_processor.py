@@ -97,24 +97,20 @@ class EventProcessor:
         
         for rule in rules:
             is_triggered = False
+            
+            # Check if alarm condition is met
             if rule.type == "high" and value > rule.threshold:
                 is_triggered = True
             elif rule.type == "low" and value < rule.threshold:
                 is_triggered = True
             
-            # Check state
+            # Get current alarm status
             current_alarm_id = self.active_alarms.get(tag_name, {}).get(rule.type)
             
             if is_triggered and not current_alarm_id:
                 # New Alarm
                 logger.warning(f"ALARM TRIGGERED: {rule.message}")
-                alarm_id = await DataService.save_alarm_event({
-                    "tag_name": tag_name,
-                    "alarm_type": rule.type,
-                    "start_time": timestamp,
-                    "start_value": value,
-                    "message": rule.message
-                })
+                alarm_id = await DataService.create_alarm(tag_name, rule.type, rule.message, timestamp, value)
                 if tag_name not in self.active_alarms:
                     self.active_alarms[tag_name] = {}
                 self.active_alarms[tag_name][rule.type] = alarm_id

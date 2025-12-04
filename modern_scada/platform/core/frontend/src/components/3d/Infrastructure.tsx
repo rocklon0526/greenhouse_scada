@@ -47,6 +47,20 @@ export const Infrastructure: React.FC<InfrastructureProps> = ({ config, devices,
         </group>
       ))}
 
+      {/* AC Units */}
+      {config.acUnits?.map((ac: any) => (
+        <group key={ac.id} position={ac.position}>
+          <Box args={ac.size}>
+            <meshStandardMaterial color={ac.color} />
+          </Box>
+          <Html position={[0, ac.size[1] / 2 + 1, 0]} center distanceFactor={20}>
+            <div className="bg-slate-900/80 text-yellow-400 text-xs px-2 py-1 rounded border border-yellow-500/50 whitespace-nowrap font-bold">
+              {ac.label}
+            </div>
+          </Html>
+        </group>
+      ))}
+
       {/* Weather Station (Legacy support if needed) */}
       {config.weatherStation && (
         <group position={config.weatherStation.position}>

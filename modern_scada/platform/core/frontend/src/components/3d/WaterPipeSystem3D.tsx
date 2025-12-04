@@ -2,16 +2,17 @@ import React, { useMemo } from 'react';
 import { useAppStore } from '../../stores/useAppStore';
 import * as THREE from 'three';
 
-export const WaterPipeSystem3D = () => {
+export const WaterPipeSystem3D = ({ config }: any) => {
     // @ts-ignore
     const { rackTanks } = useAppStore();
 
     const pipeData = useMemo(() => {
-        const tanks = Object.values(rackTanks || {}) as any[];
+        // Use props config.tanks if available, otherwise fallback to store
+        const tanks = config?.tanks || Object.values(rackTanks || {}) as any[];
         if (tanks.length === 0) return null;
 
         // Calculate bounds
-        const xPositions = tanks.map(t => t.position[0]);
+        const xPositions = tanks.map((t: any) => t.position[0]);
         const minX = Math.min(...xPositions);
         const maxX = Math.max(...xPositions);
 
@@ -32,7 +33,7 @@ export const WaterPipeSystem3D = () => {
             corner: new THREE.Vector3(dosingX, commonY, commonZ),
             end: new THREE.Vector3(maxX, commonY, commonZ),
             commonY, // Expose commonY
-            tanks: tanks.map(t => ({
+            tanks: tanks.map((t: any) => ({
                 id: t.rackId,
                 position: new THREE.Vector3(t.position[0], commonY, commonZ),
                 gaugeHeight: 5 // Target height for Level Gauge
@@ -73,7 +74,7 @@ export const WaterPipeSystem3D = () => {
             </mesh>
 
             {/* 3. Risers at each Tank */}
-            {tanks.map((tank) => (
+            {tanks.map((tank: any) => (
                 <group key={tank.id} position={[tank.position.x, tank.position.y, tank.position.z]}>
                     {/* T-Junction on Main Pipe */}
                     <mesh>

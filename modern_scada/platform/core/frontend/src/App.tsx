@@ -15,6 +15,8 @@ import ChemicalsPage from '@projects/greenhouse/frontend/pages/operation/Chemica
 import LandingPage from './pages/general/LandingPage';
 import { AlarmBanner } from './components/AlarmBanner';
 import { RecipeModule } from '../../../modules/mod_recipe/frontend';
+import WebLayout from './layouts/WebLayout';
+import DataBrowserPage from './pages/analysis/DataBrowserPage';
 
 // Module Registry (Manual for now)
 const modules = [RecipeModule];
@@ -26,18 +28,22 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/home" element={<LandingPage />} />
-
+        <Route path="/web" element={<WebLayout />}>
+          <Route index element={<Navigate to="status" replace />} />
+          <Route path="status" element={<StatusPage />} />
+          <Route path="alarms" element={<AlarmPage />} />
+          <Route path="config" element={<ConfigPage />} />
+          <Route path="users" element={<AdminPage />} />
+          <Route path="data" element={<DataBrowserPage />} />
+        </Route>
         <Route path="/perspective/:projectId" element={<GreenhouseClient />}>
           <Route index element={<Navigate to="overview" replace />} />
-          <Route path="overview" element={<OverviewPage />} />
+          <Route path="overview" element={<div />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="logic" element={<LogicPage />} />
           <Route path="formula" element={<FormulaPage />} />
           <Route path="dosing-config" element={<DosingConfigPage />} />
-          <Route path="status" element={<StatusPage />} />
-          <Route path="alarms" element={<AlarmPage />} />
-          <Route path="config" element={<ConfigPage />} />
-          <Route path="admin" element={<AdminPage />} />
+
           <Route path="chemicals" element={<ChemicalsPage />} />
 
           {/* Module Routes */}

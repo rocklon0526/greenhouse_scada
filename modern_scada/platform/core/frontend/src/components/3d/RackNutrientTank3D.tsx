@@ -4,7 +4,7 @@ import { RackNutrientTank } from '../../types/farming';
 import { Droplets, Power } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 
-const RackNutrientTank3D: React.FC<{ data: RackNutrientTank }> = ({ data }) => {
+export const RackNutrientTank3D: React.FC<{ data: RackNutrientTank }> = ({ data }) => {
   // @ts-ignore
   const { selectRackTank, selectedRackTankId, toggleRackTankValve } = useAppStore();
 
@@ -99,4 +99,3 @@ const RackNutrientTank3D: React.FC<{ data: RackNutrientTank }> = ({ data }) => {
   );
 };
 
-export default RackNutrientTank3D;

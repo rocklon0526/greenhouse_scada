@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAppStore } from '@core/stores/useAppStore';
 import { DeviceState } from '@core/types';
 import Card from '@core/components/ui/Card';
-import { Thermometer, Droplets, Activity, Power, CloudFog, Settings, LucideIcon } from 'lucide-react';
+import { Thermometer, Droplets, Activity, Power, CloudFog, Settings, LucideIcon, FileText } from 'lucide-react';
 import { WAREHOUSE_LAYOUT, InfrastructureItem } from '@core/configs/layoutConfig';
 import DeviceControlModal from '@core/components/devices/DeviceControlModal';
 import { translations } from '@core/i18n/translations';
@@ -75,6 +75,38 @@ const DashboardPage = () => {
 
   return (
     <div className="h-full overflow-y-auto custom-scrollbar p-2 flex flex-col gap-6 pb-24">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold text-white">Dashboard</h2>
+        <button
+          onClick={async () => {
+            try {
+              const response = await fetch('/api/reports/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ report_type: 'daily_production', start_date: '2023-10-27', end_date: '2023-10-27' })
+              });
+              if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `report_${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+              } else {
+                alert('Failed to generate report');
+              }
+            } catch (e) {
+              console.error(e);
+              alert('Error generating report');
+            }
+          }}
+          className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2"
+        >
+          <FileText size={16} /> Download Report
+        </button>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard title={t.avgTemp} value={latest.temp.toFixed(1)} unit="°C" icon={Thermometer} trend={2.5} color={{ text: 'text-orange-400' }} />
         <KpiCard title={t.avgHum} value={latest.hum.toFixed(0)} unit="%" icon={Droplets} trend={-1.2} color={{ text: 'text-blue-400' }} />

@@ -25,11 +25,11 @@ export const HopperSystem: React.FC<HopperSystemProps> = ({ config }) => {
                     </Cone>
 
                     {/* Label */}
-                    <Html position={[0, 5, 0]} center distanceFactor={15}>
-                        <div className="bg-slate-900/80 text-white text-xs px-2 py-1 rounded border border-slate-600 whitespace-nowrap">
+                    {/* <Html position={[0, 5, 0]} center distanceFactor={30} zIndexRange={[100, 0]}>
+                        <div className="bg-slate-900/60 backdrop-blur-sm text-white text-[10px] px-1.5 py-0.5 rounded border border-slate-600/50 whitespace-nowrap select-none pointer-events-none">
                             {hopper.label}
                         </div>
-                    </Html>
+                    </Html> */}
                 </group>
             ))}
         </group>

@@ -24,3 +24,10 @@ async def execute_recipe(recipe_id: str):
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/recipes/compare")
+async def compare_recipes(id1: str, id2: str):
+    try:
+        return await service.compare_recipes(id1, id2)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))

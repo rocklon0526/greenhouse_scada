@@ -10,6 +10,7 @@ from app.db.postgres import PostgresDB
 from app.db.sqlite import SQLiteDB
 from app.routers import auth, api, websocket
 from app.workers.polling import polling_loop
+from app.workers.http_poller import http_polling_loop  # HTTP REST API Poller
 from app.workers.forwarder import forwarder_loop
 from app.workers.scheduler import start_scheduler
 from app.workers.system_monitor import system_monitor_loop
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI):
     # Start Background Workers
     # We use asyncio.create_task to run them in the background
     polling_task = asyncio.create_task(polling_loop())
+    http_polling_task = asyncio.create_task(http_polling_loop())  # HTTP REST API Poller
     forwarder_task = asyncio.create_task(forwarder_loop())
     monitor_task = asyncio.create_task(system_monitor_loop())
     historian_task = asyncio.create_task(historian_loop())
@@ -54,6 +56,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down...")
     polling_task.cancel()
+    http_polling_task.cancel()
     forwarder_task.cancel()
     monitor_task.cancel()
     historian_task.cancel()
@@ -76,11 +79,18 @@ app.include_router(frontend.router, prefix="/api", tags=["Frontend Adapter"])
 from app.routers import users
 app.include_router(users.router, prefix="/api", tags=["User Management"])
 app.include_router(websocket.router, tags=["Realtime"])
-from api.routes import realtime, control, history, alarms
-app.include_router(realtime.router, tags=["Realtime (Redis)"])
-app.include_router(control.router, prefix="/api", tags=["Control"])
-app.include_router(history.router, prefix="/api", tags=["History"])
-app.include_router(alarms.router, prefix="/api", tags=["Alarms"])
+# Vendor Webhook Receiver
+from app.routers import webhook
+app.include_router(webhook.router, tags=["Webhooks"])
+# from api.routes import realtime, control, history, alarms
+# app.include_router(realtime.router, tags=["Realtime (Redis)"])
+# app.include_router(control.router, prefix="/api", tags=["Control"])
+# app.include_router(history.router, prefix="/api", tags=["History"])
+# app.include_router(alarms.router, prefix="/api", tags=["Alarms"])
+# from app.routers import reports
+# app.include_router(reports.router, prefix="/api", tags=["Reports"])
+# from app.routers import erp
+# app.include_router(erp.router, prefix="/api", tags=["ERP Integration"])
 
 # Register Modules (Manual Registration for now)
 from modules.mod_recipe.backend import router as recipe_router
@@ -99,7 +109,11 @@ async def get_layout():
             with open(yaml_path, "r") as f:
                 config = yaml.safe_load(f)
                 if "layout" in config:
-                    return config["layout"]
+                    layout_data = config["layout"]
+                    # Merge visualization config if present, so frontend receives it
+                    if "visualization" in config:
+                        layout_data["visualization"] = config["visualization"]
+                    return layout_data
     except Exception as e:
         print(f"Error loading config.yaml: {e}")
 
@@ -112,8 +126,8 @@ async def get_layout():
     return {"error": "Layout configuration not found"}
 
 # Start Redis Subscriber
-from api.routes import realtime
-asyncio.create_task(realtime.start_redis_subscriber())
+# from api.routes import realtime
+# asyncio.create_task(realtime.start_redis_subscriber())
 
 @app.get("/")
 async def root():

@@ -189,16 +189,12 @@ const ModelLoader: React.FC<Generic3DViewerProps> = ({ modelUrl, mapping, values
 };
 
 const ProceduralLoader: React.FC<Generic3DViewerProps> = ({ visualizationConfig, values }) => {
-    if (!visualizationConfig?.objects) return null;
-
     return (
         <group>
-            {visualizationConfig.objects.map((obj: ProceduralObject) => {
+            {/* 1. 渲染物件 */}
+            {visualizationConfig?.objects?.map((obj: ProceduralObject) => {
                 const Component = getComponent(obj.type);
-                if (!Component) {
-                    console.warn(`Component type ${obj.type} not found in registry.`);
-                    return null;
-                }
+                if (!Component) return null;
 
                 return (
                     <group key={obj.id} position={obj.position} rotation={obj.rotation ? new THREE.Euler(...obj.rotation) : undefined}>
@@ -206,61 +202,50 @@ const ProceduralLoader: React.FC<Generic3DViewerProps> = ({ visualizationConfig,
                     </group>
                 );
             })}
-            {/* Floor Grid for Procedural Mode */}
-            <Grid position={[0, 0.01, 0]} args={[120, 120]} cellColor="#334155" sectionColor="#64748b" fadeDistance={150} infiniteGrid />
+
+            {/* 2. 永遠顯示地板網格 (作為參考基準) */}
+            <Grid position={[0, -0.1, 0]} args={[200, 200]} cellColor="#475569" sectionColor="#64748b" fadeDistance={200} infiniteGrid />
         </group>
     );
 };
 
 export const Generic3DViewer: React.FC<Generic3DViewerProps> = (props: Generic3DViewerProps) => {
-    const Fallback = () => (
-        <group>
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
-                <planeGeometry args={[100, 100]} />
-                {/* @ts-ignore - Color type mismatch between three and r3f types */}
-                <meshStandardMaterial color={new THREE.Color("#1e293b")} />
-            </mesh>
-            <Grid position={[0, 0.01, 0]} args={[100, 100]} cellColor="#ef4444" sectionColor="#ef4444" />
-        </group>
-    );
-
-    // Respect explicit strategy, otherwise default to 'glb' if modelUrl is provided
+    // 雖然我們移除了 modelUrl，但保留這行以防萬一
     const strategy = props.visualizationConfig?.strategy || (props.modelUrl ? 'glb' : 'procedural');
-
-    // If strategy is 'procedural', ignore modelUrl even if it exists
     const shouldUseGLB = strategy === 'glb' && props.modelUrl;
 
     return (
-        <div className="w-full h-full">
-            <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, toneMapping: THREE.ReinhardToneMapping, toneMappingExposure: 1.5 }}>
+        <div className="w-full h-full bg-slate-950"> {/* 確保背景色 */}
+            <Canvas shadows dpr={[1, 2]} gl={{ antialias: true }}>
+                {/* 1. 攝影機：拉遠一點，視野設大 */}
                 <OrthographicCamera
                     makeDefault
-                    position={[-50, 50, 50]} // 拉遠距離
-                    zoom={20}                // 縮小 zoom 值 (值越小，視野越大)
-                    near={-200}
-                    far={2000}               // 增加可視距離
+                    position={[30, 60, 50]}
+                    zoom={8}
+                    near={-500}
+                    far={2000}
                     onUpdate={(c) => c.lookAt(0, 0, 0)}
                 />
-                <OrbitControls makeDefault target={[0, 0, 0]} enableRotate={true} enableZoom={true} enablePan={true} minZoom={10} maxZoom={100} />
+                <OrbitControls makeDefault target={[0, 0, 0]} enableRotate={false} />
 
+                {/* 2. 環境：提供基礎反射 */}
                 <Environment preset="city" />
-                {/* <ambientLight intensity={0.5} />
-                <directionalLight position={[30, 60, 30]} intensity={1} castShadow shadow-mapSize={[4096, 4096]} /> */}
-                <ambientLight intensity={2.0} /> {/* 大幅增加環境光 */}
-                <pointLight position={[0, 50, 0]} intensity={3000} distance={200} /> {/* 增加一盞強力的點光源 */}
-                <directionalLight position={[50, 50, 25]} intensity={2.5} castShadow />
-                <group position={[0, -5, 0]}>
-                    <SimpleErrorBoundary fallback={<Fallback />}>
-                        <Suspense fallback={null}>
-                            {shouldUseGLB ? (
-                                <ModelLoader {...props} />
-                            ) : (
-                                <ProceduralLoader {...props} />
-                            )}
-                        </Suspense>
-                    </SimpleErrorBoundary>
 
-                    <ContactShadows resolution={1024} scale={150} blur={2} opacity={0.25} far={5} color="#000000" />
+                {/* 3. 燈光：增強亮度 */}
+                <ambientLight intensity={2.5} />
+                <directionalLight position={[50, 80, 30]} intensity={3.0} castShadow />
+                <pointLight position={[-20, 20, -20]} intensity={1000} distance={200} color="#ffffff" />
+
+                <group position={[0, -5, 0]}>
+                    <Suspense fallback={null}>
+                        {shouldUseGLB ? (
+                            // @ts-ignore
+                            <ModelLoader {...props} />
+                        ) : (
+                            <ProceduralLoader {...props} />
+                        )}
+                    </Suspense>
+                    <ContactShadows resolution={1024} scale={200} blur={2} opacity={0.4} far={10} color="#000000" />
                 </group>
             </Canvas>
         </div>
