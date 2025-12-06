@@ -21,50 +21,47 @@ async def control_device(payload: dict = Body(...), current_user: User = Depends
     # payload: { deviceId: "fan_1", isOn: true } or { deviceId: "valve_1", isOpen: true }
     device_id = payload.get("deviceId")
     
-    # Map deviceId to tag name and value
-    tag_name = None
+    # Map payload to command/value
+    command = "SET"
+    parameter = "status"
     value = 0.0
     
     if "isOn" in payload:
-        tag_name = f"{device_id}_status" if "status" not in device_id else device_id
+        parameter = "status"
         value = 1.0 if payload["isOn"] else 0.0
     elif "isOpen" in payload:
-        tag_name = f"{device_id}_status" if "status" not in device_id else device_id
+        parameter = "position" # or status
         value = 1.0 if payload["isOpen"] else 0.0
     elif "intensity" in payload:
-        tag_name = f"{device_id}_intensity"
+        parameter = "intensity"
         value = float(payload["intensity"])
     
-    if not tag_name:
-        return {"success": False, "error": "Unknown command"}
+    if not device_id:
+        return {"success": False, "error": "Missing deviceId"}
 
-    # Find address for tag
-    target_tag = next((t for t in settings.app_config.tags if t.name == tag_name), None)
-    if not target_tag:
-        # Try appending _status if not found (simple heuristic)
-        target_tag = next((t for t in settings.app_config.tags if t.name == f"{device_id}_status"), None)
-    
-    if not target_tag:
-        return {"success": False, "error": f"Tag not found for {device_id}"}
-
-    # Write to PLC
-    config = settings.app_config.plc
-    client = AsyncModbusTcpClient(config.host, port=config.port)
-    await client.connect()
     try:
-        # Write float
-        b = struct.pack('>f', value)
-        payload_regs = list(struct.unpack('>HH', b))
-        await client.write_registers(target_tag.address, payload_regs, device_id=1)
+        from app.services.device_control_service import DeviceControlService
         
-        # Optimistically update local cache
-        EventProcessor().tag_values[target_tag.name] = value
+        # Use Unified Control Service
+        # Note: Frontend currently doesn't send "command" or "parameter" explicitly,
+        # so we infer them. Ideally frontend should send standard command structure.
+        await DeviceControlService.send_control_command(device_id, command, parameter, value)
+        
+        # Optimistically update local cache (EventProcessor)
+        # This is strictly for UI responsiveness; the real feedback comes from polling/webhook
+        tag_name = f"{device_id}_{parameter}"
+        # Try to match tag naming convention
+        if parameter == "status" and not device_id.endswith("_status"):
+             # Simple heuristic: if device_id is "fan_1", tag might be "fan_1_status" or just "fan_1"
+             # But DeviceControlService handles the actual control.
+             # Here we just want to update the cache.
+             pass
+
+        EventProcessor().tag_values[tag_name] = value
         
         return {"success": True}
     except Exception as e:
         return {"success": False, "error": str(e)}
-    finally:
-        client.close()
 
 @router.post("/process/mix")
 async def start_mixing(payload: dict = Body(...), current_user: User = Depends(get_current_active_user)):

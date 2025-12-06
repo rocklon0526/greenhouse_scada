@@ -4,7 +4,7 @@ import os
 import time
 from datetime import datetime
 from typing import Dict, List, Any, Optional
-from app.services.data_service import DataService
+# from app.services.data_service import DataService
 from services.redis_service import RedisService
 
 logger = logging.getLogger(__name__)
@@ -116,6 +116,13 @@ class LogicEngine:
                 continue
 
             await self.process_rule(rule, value)
+            
+        # Record Metrics
+        try:
+            from app.services.metrics_service import MetricsService
+            MetricsService.get().rules_evaluated_total.inc(len(self.rules))
+        except Exception:
+            pass
 
     async def process_rule(self, rule: Dict, value: float):
         rule_id = rule["id"]
@@ -290,9 +297,18 @@ class LogicEngine:
                 cmd_value = 0.0
             
             logger.info(f"EXECUTE: {device_id} -> {cmd_value}")
-            # We need a way to send this command. 
-            # Since we are in `services`, we shouldn't import `routers`.
-            # We should use `DataService` or a new `DeviceService`.
-            # For this MVP, I will assume a `DataService.send_control` exists or I'll add it.
-            await DataService.send_control_command(device_id, cmd_value)
+            # Use Unified DeviceControlService
+            from app.services.device_control_service import DeviceControlService
+            
+            # Logic Engine typically controls "status" (on/off) or "setpoint"
+            # We infer parameter based on value type or context, but for now default to "status"
+            # If value is not 0.0 or 1.0, maybe it's a setpoint?
+            # Let's assume "status" for boolean-ish values, "setpoint" for others?
+            # Or just "value" and let the service/device handle it.
+            # But DeviceControlService needs a parameter name for HTTP/Vendor mapping.
+            
+            parameter = "status"
+            command = "SET"
+            
+            await DeviceControlService.send_control_command(device_id, command, parameter, cmd_value)
 

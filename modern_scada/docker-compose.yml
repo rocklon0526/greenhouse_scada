@@ -5,11 +5,21 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=scada
-      - DATABASE_URL=postgresql://postgres:password@timeseries-db:5432/scada
-      - SCADA_PROJECT_PATH=/app/projects/greenhouse/config
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - DATABASE_URL=${DATABASE_URL}
+      - SCADA_PROJECT_PATH=${SCADA_PROJECT_PATH}
+      # Notification & Integration Secrets
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - LINE_NOTIFY_TOKEN=${LINE_NOTIFY_TOKEN}
+      - INTEGRATION_TYPE=${INTEGRATION_TYPE}
+      - INTEGRATION_URL=${INTEGRATION_URL}
+      - INTEGRATION_API_KEY=${INTEGRATION_API_KEY}
     depends_on:
       - timeseries-db
       - plc-sim
@@ -23,9 +33,9 @@ services:
     image: postgres:15-alpine
     container_name: timeseries-db
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=scada
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -49,20 +59,37 @@ services:
     build:
       context: .
       dockerfile: platform/core/frontend/Dockerfile
+      target: build
     container_name: frontend
     ports:
-      - "80:80"
+      - "5173:5173" # 改用 Vite 開發 Server 的 Port (原本可能是 80)
+    environment:
+      - VITE_API_URL=/api # 確保前端知道 API 在哪
     depends_on:
       - backend-core
     volumes:
-      - ./projects/greenhouse/assets:/usr/share/nginx/html/models
+      # [關鍵] 掛載核心前端程式碼
+      - ./platform/core/frontend/src:/app/platform/core/frontend/src
+      - ./platform/core/frontend/public:/app/platform/core/frontend/public
+      - ./platform/core/frontend/index.html:/app/platform/core/frontend/index.html
+      - ./platform/core/frontend/vite.config.ts:/app/platform/core/frontend/vite.config.ts
+
+      # [關鍵] 掛載模組與專案程式碼 (這樣改 layout.json 或邏輯也會即時生效)
+      - ./platform/modules:/app/platform/modules
+      - ./projects:/app/projects
+
+      # 排除 node_modules (使用容器內的版本)
+      - /app/platform/core/frontend/node_modules
+
+    # 改用開發模式啟動 (原本可能是 nginx)
+    command: npm run dev -- --host 0.0.0.0
 
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@scada.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
     ports:
       - "5050:80"
     depends_on:
@@ -77,6 +104,28 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
     restart: always
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./platform/core/backend/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./platform/core/backend/monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
 
 volumes:
   postgres_data:

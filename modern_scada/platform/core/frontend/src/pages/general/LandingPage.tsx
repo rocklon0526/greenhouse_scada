@@ -31,7 +31,7 @@ const LandingPage: React.FC = () => {
     // Mock Project List
     const projects: Project[] = [
         {
-            id: 'default',
+            id: 'greenhouse',
             name: 'Greenhouse Alpha',
             description: 'Main production facility with 2 aisles and 6 dosing tanks.',
             role: 'Production'

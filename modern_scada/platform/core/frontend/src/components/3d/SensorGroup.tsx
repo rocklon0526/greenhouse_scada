@@ -4,9 +4,13 @@ import { useAppStore } from '../../stores/useAppStore';
 import { SensorData } from '../../types/sensors';
 import { ThreeEvent } from '@react-three/fiber';
 
-const SensorGroup: React.FC<{ data: SensorData }> = ({ data }) => {
+const SensorGroup: React.FC<{ data: SensorData, id?: string, values?: any }> = ({ data: initialData, id, values }) => {
   const { selectedSensorId, selectSensor } = useAppStore();
   const [hovered, setHovered] = useState(false);
+
+  // Merge live data if available
+  const liveData = (id && values && values[id]) ? values[id] : null;
+  const data = liveData ? { ...initialData, ...liveData } : initialData;
 
   if (!data) return null;
 

@@ -6,7 +6,7 @@ who push data changes (COV - Change of Value) to the SCADA system.
 """
 
 import logging
-from fastAPI import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
 from typing import Dict, Optional, Any
 from app.services.event_processor import EventProcessor

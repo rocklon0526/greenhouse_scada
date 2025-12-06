@@ -64,6 +64,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Modern SCADA Backend", lifespan=lifespan)
 
+# Prometheus Instrumentation
+from prometheus_fastapi_instrumentator import Instrumentator
+Instrumentator().instrument(app).expose(app)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -117,7 +121,13 @@ async def get_layout():
     except Exception as e:
         print(f"Error loading config.yaml: {e}")
 
-    # Fallback to site_config.json if yaml fails or layout missing
+    # Fallback to layout.json (Preferred over site_config.json)
+    layout_json_path = os.path.join(config_path, "layout.json")
+    if os.path.exists(layout_json_path):
+        with open(layout_json_path, "r") as f:
+            return json.load(f)
+
+    # Legacy Fallback
     json_path = os.path.join(config_path, "site_config.json")
     if os.path.exists(json_path):
         with open(json_path, "r") as f:
@@ -132,3 +142,47 @@ async def get_layout():
 @app.get("/")
 async def root():
     return {"message": "SCADA Backend Online"}
+
+@app.get("/health")
+async def health_check():
+    """
+    Deep health check for production monitoring.
+    Checks:
+    1. PostgreSQL Connection
+    2. Redis Connection (via LogicEngine)
+    """
+    status = {
+        "status": "healthy",
+        "services": {
+            "database": "unknown",
+            "redis": "unknown"
+        }
+    }
+    
+    # Check Database
+    try:
+        await PostgresDB.execute("SELECT 1")
+        status["services"]["database"] = "up"
+    except Exception as e:
+        status["services"]["database"] = f"down: {str(e)}"
+        status["status"] = "unhealthy"
+
+    # Check Redis
+    try:
+        from app.services.logic_engine import LogicEngine
+        engine = LogicEngine()
+        if engine.redis and engine.redis.health_check():
+            status["services"]["redis"] = "up"
+        else:
+            status["services"]["redis"] = "down"
+            # Redis might be optional, so maybe don't mark overall as unhealthy?
+            # For now, let's say it's critical.
+            status["status"] = "unhealthy"
+    except Exception as e:
+        status["services"]["redis"] = f"error: {str(e)}"
+        status["status"] = "unhealthy"
+
+    if status["status"] == "unhealthy":
+        raise HTTPException(status_code=503, detail=status)
+        
+    return status

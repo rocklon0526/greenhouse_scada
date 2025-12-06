@@ -15,4 +15,7 @@ COPY . .
 # Create data directory for SQLite
 RUN mkdir -p data
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Make start script executable
+RUN chmod +x start.sh
+
+CMD ["./start.sh"]

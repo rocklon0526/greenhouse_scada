@@ -229,11 +229,10 @@ const OverviewPage = () => {
     // ==========================================
 
     // 收集所有 RackNutrientTank 的位置資訊，傳給 WaterPipeSystem
-    const tankPositions = growing?.racks?.map((rack: any, index: number) => {
-      const xPos = 10 + (index * 12);
+    const tankPositions = growing?.nutrient_tanks?.map((tank: any, index: number) => {
       return {
-        id: rack.id,
-        position: [xPos - 3, 0, 12] // 必須與 RackNutrientTankWidget 的位置一致
+        id: tank.id,
+        position: tank.position // 必須與 RackNutrientTankWidget 的位置一致
       };
     }) || [];
 
@@ -245,55 +244,87 @@ const OverviewPage = () => {
         objects.push({
           id: rack.id,
           type: 'RackWidget',
-          position: [xPos, 0, 0],
+          position: rack.position,
           props: {
             data: {
               ...rack,
-              position: [xPos, 0, 0] // Override position to avoid double offset
-            }
-          }
-        });
-
-        // B. 機架前的藍色配液桶 (RackNutrientTank)
-        objects.push({
-          id: `${rack.id}_tank`,
-          type: 'RackNutrientTankWidget',
-          position: [xPos - 3, 0, 12], // 放在機架前方 (Z=12)
-          props: {
-            data: {
-              rackId: rack.id,
-              position: [0, 0, 0], // Relative to the wrapper group
-              level: 4, // Default level (Full)
-              ph: 6.5,
-              ec: 2.0,
-              valveOpen: false,
-              pumpActive: false
             }
           }
         });
       });
     }
-
+    // [新增] 從設定檔讀取液位計
+    if (growing?.nutrient_tanks) {
+      growing.nutrient_tanks.forEach((tank: any) => {
+        objects.push({
+          id: tank.id,
+          type: 'RackNutrientTankWidget', // 確保這裡的 Type 對應 ComponentRegistry
+          position: tank.position,
+          props: {
+            data: {
+              rackId: tank.rack_id, // 傳遞關聯的 Rack ID
+              position: [0, 0, 0],  // 因為外層已經定位了，這裡傳 0
+              level: tank.level,             // 預設值，實際應從 store 讀取
+              ph: tank.ph,
+              ec: tank.ec,
+              valveOpen: tank.valve_open,
+              pumpActive: tank.pump_active
+            }
+          }
+        });
+      });
+    }
     // ==========================================
     // 3. 基礎設施 (Infrastructure) - 水牆與風扇
     // ==========================================
     // 這裡我們將原本分散的 WaterWall 整合進 Infrastructure
 
     if (growing?.fans) {
-      growing.fans.forEach((fan: any, index: number) => {
-        const xPos = 10 + (index * 12);
-
+      growing.fans.forEach((fan: any) => {
         // 負壓風扇
         objects.push({
           id: fan.id,
           type: 'FanWidget',
-          position: [xPos - 3, 0, 12],
+          position: fan.position,
           props: {
             config: layoutConfig.infrastructure
           }
         });
       });
     }
+
+    // C. 感測器 (Sensors)
+    if (growing?.sensors) {
+      growing.sensors.forEach((sensor: any) => {
+        objects.push({
+          id: sensor.id,
+          type: 'SensorWidget',
+          position: sensor.position || [0, 0, 0],
+          props: {
+            data: sensor
+          }
+        });
+      });
+    }
+
+    // D. 水牆 (Water Walls)
+    if (growing?.water_walls) {
+      growing.water_walls.forEach((ww: any) => {
+        objects.push({
+          id: ww.id,
+          type: 'box', // Use our new BoxShape
+          position: ww.position || [0, 0, 0],
+          props: {
+            args: [2, 8, 15], // Default size for water wall
+            color: '#3b82f6',
+            transparent: true,
+            opacity: 0.6,
+            label: ww.id
+          }
+        });
+      });
+    }
+
     // ==========================================
     // 4. 連接管線 (Pipes) - 自動計算路徑
     // ==========================================
@@ -338,9 +369,13 @@ const OverviewPage = () => {
         <Generic3DViewer
           mapping={visualizationMapping}
           values={devices}
-          visualizationConfig={layoutConfig.visualization || {
-            strategy: 'procedural',
-            objects: proceduralObjects
+          visualizationConfig={{
+            ...layoutConfig.visualization,
+            strategy: layoutConfig.visualization?.strategy || 'procedural',
+            objects: [
+              ...(layoutConfig.visualization?.objects || []),
+              ...proceduralObjects
+            ]
           }}
         />
       </div>

@@ -2,7 +2,7 @@ def process_tags(tags):
     """
     Project specific logic hook.
     """
-    print("Executing Safety Rules...")
+    # print("Executing Safety Rules...")
     
     # Check for high temperature
     temp_sensor = tags.get("temp_sensor_01", {})

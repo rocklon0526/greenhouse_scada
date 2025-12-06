@@ -9,12 +9,13 @@ import { WAREHOUSE_LAYOUT } from '@core/configs/layoutConfig';
 
 const GreenhouseClient = () => {
   // @ts-ignore
-  const { connectionStatus, language, setLanguage } = useAppStore();
+  const { connectionStatus, language, setLanguage, layoutConfig } = useAppStore();
   const t = translations[language as keyof typeof translations];
   const { projectId } = useParams();
 
-  // Initialize WebSocket connection
-  useWebSocket(WAREHOUSE_LAYOUT);
+  // Initialize WebSocket connection with dynamic layoutConfig
+  // Fallback to WAREHOUSE_LAYOUT if layoutConfig is not yet loaded
+  useWebSocket(layoutConfig || WAREHOUSE_LAYOUT);
 
   const location = useLocation();
 

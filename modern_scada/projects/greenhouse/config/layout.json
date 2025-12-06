@@ -1,37 +1,419 @@
 {
-    "site_name": "Demo Greenhouse",
-    "zones": [
-        {
-            "id": "zone_a",
-            "name": "Planting Zone A",
-            "equipments": [
+    "site_name": "Smart Greenhouse",
+    "visualization": {
+        "strategy": "procedural",
+        "styles": [
+            {
+                "pattern": "hopper",
+                "style": {
+                    "color": "#eab308",
+                    "metalness": 0.6,
+                    "roughness": 0.2
+                }
+            },
+            {
+                "pattern": "mixer",
+                "style": {
+                    "color": "#3b82f6",
+                    "metalness": 0.3,
+                    "roughness": 0.1,
+                    "transmission": 0.2,
+                    "opacity": 0.9,
+                    "transparent": true
+                }
+            },
+            {
+                "pattern": "fan",
+                "style": {
+                    "color": "#475569",
+                    "metalness": 0.5,
+                    "roughness": 0.5
+                }
+            },
+            {
+                "pattern": "rack",
+                "style": {
+                    "color": "#1e293b",
+                    "emissive": "#10b981",
+                    "emissiveIntensity": 0.1
+                }
+            },
+            {
+                "pattern": "valve",
+                "style": {
+                    "color": "#ef4444",
+                    "metalness": 0.5,
+                    "roughness": 0.5
+                }
+            },
+            {
+                "pattern": "sensor",
+                "style": {
+                    "color": "#10b981",
+                    "emissive": "#10b981",
+                    "emissiveIntensity": 0.5
+                }
+            },
+            {
+                "pattern": "water_wall",
+                "style": {
+                    "color": "#3b82f6",
+                    "transmission": 0.6,
+                    "opacity": 0.8,
+                    "transparent": true
+                }
+            }
+        ],
+        "objects": [
+            {
+                "id": "floor",
+                "type": "box",
+                "position": [
+                    0,
+                    -0.5,
+                    0
+                ],
+                "props": {
+                    "args": [
+                        200,
+                        1,
+                        200
+                    ],
+                    "color": "#1e293b"
+                }
+            }
+        ]
+    },
+    "zones": {
+        "nutrient": {
+            "position": [
+                -30,
+                0,
+                -30
+            ],
+            "hoppers": [
                 {
-                    "id": "fan_01",
-                    "name": "Exhaust Fan 1",
-                    "typeId": "var_speed_fan"
+                    "id": "hopper_01",
+                    "position": [
+                        0,
+                        20,
+                        0
+                    ],
+                    "type": "cone",
+                    "label": "Hopper 1",
+                    "tag": "dosing_1_level"
                 },
                 {
-                    "id": "fan_02",
-                    "name": "Circulation Fan",
-                    "typeId": "var_speed_fan"
+                    "id": "hopper_02",
+                    "position": [
+                        10,
+                        20,
+                        0
+                    ],
+                    "type": "cone",
+                    "label": "Hopper 2",
+                    "tag": "dosing_2_level"
+                },
+                {
+                    "id": "hopper_03",
+                    "position": [
+                        20,
+                        20,
+                        0
+                    ],
+                    "type": "cone",
+                    "label": "Hopper 3",
+                    "tag": "dosing_3_level"
+                },
+                {
+                    "id": "hopper_04",
+                    "position": [
+                        30,
+                        20,
+                        0
+                    ],
+                    "type": "cone",
+                    "label": "Hopper 4",
+                    "tag": "dosing_4_level"
+                },
+                {
+                    "id": "hopper_05",
+                    "position": [
+                        40,
+                        20,
+                        0
+                    ],
+                    "type": "cone",
+                    "label": "Hopper 5",
+                    "tag": "dosing_5_level"
+                },
+                {
+                    "id": "hopper_06",
+                    "position": [
+                        50,
+                        20,
+                        0
+                    ],
+                    "type": "cone",
+                    "label": "Hopper 6",
+                    "tag": "dosing_6_level"
+                }
+            ],
+            "mixing_tank": {
+                "id": "mixer_main",
+                "position": [
+                    25,
+                    5,
+                    0
+                ],
+                "type": "cylinder",
+                "label": "Main Mixer",
+                "tag": "mixer_level"
+            },
+            "valves": [
+                {
+                    "id": "valve_mixer_out",
+                    "position": [
+                        25,
+                        2,
+                        0
+                    ],
+                    "type": "box",
+                    "label": "Mixer Valve",
+                    "tag": "mixer_valve_open"
                 }
             ]
         },
-        {
-            "id": "zone_b",
-            "name": "Nursery Room",
-            "equipments": [
+        "growing": {
+            "position": [
+                0,
+                0,
+                0
+            ],
+            "racks": [
                 {
-                    "id": "fan_03",
-                    "name": "Small Exhaust",
-                    "typeId": "var_speed_fan"
+                    "id": "rack_01",
+                    "position": [
+                        10,
+                        0,
+                        -10
+                    ],
+                    "levels": 5,
+                    "width": 4,
+                    "length": 50,
+                    "height": 10,
+                    "label": "Rack 1"
                 },
                 {
-                    "id": "temp_sensor_01",
-                    "name": "Main Sensor Box",
-                    "typeId": "sensor_box"
+                    "id": "rack_02",
+                    "position": [
+                        4.5,
+                        0,
+                        -10
+                    ],
+                    "levels": 5,
+                    "width": 4,
+                    "length": 50,
+                    "height": 10,
+                    "label": "Rack 2"
+                },
+                {
+                    "id": "rack_03",
+                    "position": [
+                        2,
+                        0,
+                        -10
+                    ],
+                    "levels": 5,
+                    "width": 4,
+                    "length": 50,
+                    "height": 10,
+                    "label": "Rack 3"
+                },
+                {
+                    "id": "rack_04",
+                    "position": [
+                        -3.5,
+                        0,
+                        -10
+                    ],
+                    "levels": 5,
+                    "width": 4,
+                    "length": 50,
+                    "height": 10,
+                    "label": "Rack 4"
+                }
+            ],
+            "fans": [
+                {
+                    "id": "fan_01",
+                    "position": [
+                        -30,
+                        5,
+                        0
+                    ],
+                    "type": "cylinder",
+                    "label": "Fan 1",
+                    "rotation": [
+                        0,
+                        0,
+                        1.57
+                    ],
+                    "tag": "fan_1_status"
+                },
+                {
+                    "id": "fan_02",
+                    "position": [
+                        -30,
+                        5,
+                        20
+                    ],
+                    "type": "cylinder",
+                    "label": "Fan 2",
+                    "rotation": [
+                        0,
+                        0,
+                        1.57
+                    ],
+                    "tag": "fan_2_status"
+                }
+            ],
+            "water_walls": [
+                {
+                    "id": "ww_01",
+                    "position": [
+                        30,
+                        5,
+                        0
+                    ],
+                    "type": "box",
+                    "label": "Water Wall 1",
+                    "tag": "ww_1_status"
+                },
+                {
+                    "id": "ww_02",
+                    "position": [
+                        30,
+                        5,
+                        20
+                    ],
+                    "type": "box",
+                    "label": "Water Wall 2",
+                    "tag": "ww_2_status"
+                }
+            ],
+            "sensors": [
+                {
+                    "id": "sensor_01",
+                    "position": [
+                        8,
+                        5,
+                        -20
+                    ],
+                    "type": "sensor_box",
+                    "label": "Sensor 1"
+                },
+                {
+                    "id": "sensor_02",
+                    "position": [
+                        8,
+                        5,
+                        -10
+                    ],
+                    "type": "sensor_box",
+                    "label": "Sensor 2"
+                },
+                {
+                    "id": "sensor_03",
+                    "position": [
+                        8,
+                        5,
+                        0
+                    ],
+                    "type": "sensor_box",
+                    "label": "Sensor 3"
+                },
+                {
+                    "id": "sensor_04",
+                    "position": [
+                        0,
+                        5,
+                        -20
+                    ],
+                    "type": "sensor_box",
+                    "label": "Sensor 4"
+                },
+                {
+                    "id": "sensor_05",
+                    "position": [
+                        0,
+                        5,
+                        -10
+                    ],
+                    "type": "sensor_box",
+                    "label": "Sensor 5"
+                },
+                {
+                    "id": "sensor_06",
+                    "position": [
+                        0,
+                        5,
+                        0
+                    ],
+                    "type": "sensor_box",
+                    "label": "Sensor 6"
+                }
+            ],
+            "nutrient_tanks": [
+                {
+                    "id": "tank_rack_01",
+                    "rack_id": "rack_01",
+                    "position": [
+                        20,
+                        0,
+                        12
+                    ],
+                    "type": "RackNutrientTankWidget",
+                    "label": "Tank 1",
+                    "tag": "rack_01_tank_level"
+                },
+                {
+                    "id": "tank_rack_02",
+                    "rack_id": "rack_02",
+                    "position": [
+                        8,
+                        0,
+                        12
+                    ],
+                    "type": "RackNutrientTankWidget",
+                    "label": "Tank 2",
+                    "tag": "rack_02_tank_level"
+                },
+                {
+                    "id": "tank_rack_03",
+                    "rack_id": "rack_03",
+                    "position": [
+                        5,
+                        0,
+                        12
+                    ],
+                    "type": "RackNutrientTankWidget",
+                    "label": "Tank 3",
+                    "tag": "rack_03_tank_level"
+                },
+                {
+                    "id": "tank_rack_04",
+                    "rack_id": "rack_04",
+                    "position": [
+                        -7,
+                        0,
+                        12
+                    ],
+                    "type": "RackNutrientTankWidget",
+                    "label": "Tank 4",
+                    "tag": "rack_04_tank_level"
                 }
             ]
         }
-    ]
+    }
 }

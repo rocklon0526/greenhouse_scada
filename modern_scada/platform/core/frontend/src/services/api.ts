@@ -117,18 +117,35 @@ export const api = {
 };
 
 export const mapApiDataToState = (data: any, layoutConfig: LayoutConfig) => {
+  console.log("Using patched mapApiDataToState", layoutConfig);
   const now = new Date();
   const newEntry = {
     time: now.toLocaleTimeString(),
     temp: data.avgTemp, hum: data.avgHum, co2: data.avgCo2
   };
+
+  // Helper to extract items from zones
+  const extractFromZones = (key: string) => {
+    const items: any[] = [];
+    if (layoutConfig.zones) {
+      Object.values(layoutConfig.zones).forEach((zone: any) => {
+        if (zone[key]) items.push(...zone[key]);
+      });
+    }
+    return items;
+  };
+
+  const allSensors = [...(layoutConfig.sensorPoints || []), ...extractFromZones('sensors')];
+  const allRacks = [...(layoutConfig.racks || []), ...extractFromZones('racks')];
+
   const mergedSensors = data.sensors.map((apiSensor: any) => {
-    const configSensor = layoutConfig.sensorPoints.find(p => p.id === apiSensor.id);
+    const configSensor = allSensors.find((p: any) => p.id === apiSensor.id);
     return {
       ...apiSensor,
       position: configSensor ? configSensor.position : [0, 0, 0]
     };
   });
+
   return {
     sensors: mergedSensors,
     devices: data.devices,
@@ -139,7 +156,8 @@ export const mapApiDataToState = (data: any, layoutConfig: LayoutConfig) => {
       const mappedTanks: any = {};
       const backendKeys = Object.keys(data.rackTanks || {});
 
-      layoutConfig.racks.forEach((rack, index) => {
+      // Use allRacks instead of layoutConfig.racks
+      allRacks.forEach((rack: any, index: number) => {
         // Replicate position calculation from initSystem
         const position = [rack.position[0], 0, rack.position[2] + (rack.length / 2) + 12];
 
