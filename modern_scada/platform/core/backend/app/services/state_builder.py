@@ -20,7 +20,7 @@ class StateBuilder:
         # 2. Sensors
         sensors = []
         for i in range(1, 7):
-            sid = f"sensor_{i}"
+            sid = f"sensor_{i:02d}"
             # Calculate sensor averages
             s_temps = [get_val(f"{sid}_top_temp"), get_val(f"{sid}_mid_temp"), get_val(f"{sid}_bot_temp")]
             s_hums = [get_val(f"{sid}_top_hum"), get_val(f"{sid}_mid_hum"), get_val(f"{sid}_bot_hum")]

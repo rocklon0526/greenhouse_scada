@@ -143,18 +143,68 @@ const MixerPanel = () => {
 };
 
 const RackTankPanel = () => {
-  const { selectedRackId, clearSelection } = useAppStore() as any;
-  if (!selectedRackId) return null;
+  // 1. 從 Store 獲取 rackTanks 數據與操作方法
+  const { selectedRackTankId, rackTanks, clearSelection, startTransferProcess } = useAppStore() as any;
+
+  if (!selectedRackTankId) return null;
+
+  // 2. 根據 ID 查找對應的 Tank 資料
+  const tankData = rackTanks[selectedRackTankId];
+
+  // 若找不到資料的防呆顯示
+  if (!tankData) return (
+    <DetailCard title={`Rack ${selectedRackTankId}`} subTitle="Growth Unit Details" onClose={clearSelection}>
+      <div className="text-center py-4 text-slate-500">No telemetry data available.</div>
+    </DetailCard>
+  );
 
   return (
-    <DetailCard title={`Rack ${selectedRackId}`} subTitle="Growth Unit Details" onClose={clearSelection}>
-      <div className="flex flex-col items-center justify-center py-8 text-slate-500 space-y-2">
-        <Database size={32} />
-        <span className="text-sm">Rack data visualization</span>
+    <DetailCard title={`Rack ${selectedRackTankId}`} subTitle="Growth Unit Details" onClose={clearSelection}>
+      <div className="space-y-4">
+        {/* 狀態顯示 */}
+        <div className="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+          <span className="text-xs text-slate-400 uppercase font-bold">System Status</span>
+          <span className={`font-bold font-mono ${tankData.status === 'FILLING' ? 'text-blue-400 animate-pulse' : 'text-slate-200'}`}>
+            {tankData.status || 'IDLE'}
+          </span>
+        </div>
+
+        {/* 數值儀表板 */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+            <div className="text-[10px] text-slate-400 uppercase mb-1">Level (L1-L4)</div>
+            <div className="text-xl font-mono font-bold text-blue-400">
+              L{tankData.level} <span className="text-xs text-slate-600">/ 4</span>
+            </div>
+          </div>
+          <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+            <div className="text-[10px] text-slate-400 uppercase mb-1">Valve State</div>
+            <div className={`text-xl font-bold ${tankData.valveOpen ? 'text-green-400' : 'text-slate-500'}`}>
+              {tankData.valveOpen ? 'OPEN' : 'CLOSED'}
+            </div>
+          </div>
+          <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+            <div className="text-[10px] text-slate-400 uppercase mb-1">PH Value</div>
+            <div className="text-xl font-mono font-bold text-white">{typeof tankData.ph === 'number' ? tankData.ph.toFixed(1) : '-'}</div>
+          </div>
+          <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+            <div className="text-[10px] text-slate-400 uppercase mb-1">EC Value</div>
+            <div className="text-xl font-mono font-bold text-yellow-400">{typeof tankData.ec === 'number' ? tankData.ec.toFixed(1) : '-'}</div>
+          </div>
+        </div>
+
+        {/* 控制按鈕 (補水) */}
+        <button
+          onClick={() => startTransferProcess(selectedRackTankId)}
+          disabled={tankData.level >= 4 || tankData.status === 'FILLING'}
+          className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold transition-colors shadow-lg shadow-blue-900/20"
+        >
+          {tankData.status === 'FILLING' ? 'Refilling in Progress...' : 'Start Refill Task'}
+        </button>
       </div>
     </DetailCard>
   );
-}
+};
 
 const WeatherPanel = () => {
   const { weatherStation, language } = useAppStore() as any;
