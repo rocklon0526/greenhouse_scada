@@ -1,0 +1,24 @@
+{
+    "globals": {
+        "temp_threshold": 28.0,
+        "hum_threshold": 80.0
+    },
+    "rules": [
+        {
+            "id": "rule_high_temp",
+            "name": "High Temp Alert",
+            "enabled": true,
+            "condition": {
+                "tag": "sensor_01_top_temp",
+                "operator": ">",
+                "value": 28.0
+            },
+            "actions": [
+                {
+                    "device_id": "fan_1",
+                    "value": 1.0
+                }
+            ]
+        }
+    ]
+}

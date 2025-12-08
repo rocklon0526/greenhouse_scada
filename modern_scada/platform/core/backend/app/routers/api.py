@@ -189,3 +189,49 @@ async def get_system_history(range: str = '24h', current_user: User = Depends(ge
     except Exception as e:
         print(f"History fetch error: {e}")
         return []
+@router.post("/config/dosing", dependencies=[Depends(RoleChecker(["admin"]))])
+async def update_dosing_config(config: List[dict]):
+    import json
+    import os
+    
+    # Path to layout.json
+    config_path = os.getenv("SCADA_PROJECT_PATH", "projects/greenhouse/config")
+    layout_path = os.path.join(config_path, "layout.json")
+    
+    if not os.path.exists(layout_path):
+        raise HTTPException(status_code=404, detail="Layout config not found")
+        
+    try:
+        with open(layout_path, "r") as f:
+            layout = json.load(f)
+            
+        # Update hoppers
+        # config is list of {id, name, chemicalId, capacity, currentLevel}
+        # layout hoppers are in layout['zones']['nutrient']['hoppers']
+        
+        hoppers = layout.get('zones', {}).get('nutrient', {}).get('hoppers', [])
+        
+        for tank in config:
+            # Find matching hopper by ID (e.g. 1 -> hopper_01)
+            target_id = f"hopper_{int(tank['id']):02d}"
+            
+            for hopper in hoppers:
+                if hopper['id'] == target_id:
+                    if 'name' in tank: hopper['label'] = tank['name']
+                    if 'chemicalId' in tank: hopper['chemicalId'] = tank['chemicalId']
+                    if 'capacity' in tank: hopper['capacity'] = tank['capacity']
+                    # We don't save currentLevel to layout as it's runtime state (or maybe we do for initial state?)
+                    # The user wants "Dosing Config Persistence", usually implies static config.
+                    # But currentLevel is also editable in the UI.
+                    # Let's save it as 'initialLevel' or just 'level' if it's meant to be persistent.
+                    # Given it's a "Config" page, saving level implies setting the initial/calibration level.
+                    if 'currentLevel' in tank: hopper['level'] = tank['currentLevel']
+                    break
+        
+        with open(layout_path, "w") as f:
+            json.dump(layout, f, indent=4)
+            
+        return {"status": "success"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

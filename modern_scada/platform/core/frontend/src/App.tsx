@@ -16,7 +16,7 @@ import DataBrowserPage from './pages/analysis/DataBrowserPage';
 import Project from '@project-entry';
 
 // Module Registry (Manual for now)
-const modules = [RecipeModule];
+const modules: any[] = [/* RecipeModule */];
 
 function App() {
   return (
@@ -51,7 +51,7 @@ function App() {
           ))}
 
           {/* Module Routes */}
-          {modules.flatMap(mod => mod.routes?.map(route => (
+          {modules.flatMap(mod => mod.routes?.map((route: any) => (
             <Route
               key={route.path}
               path={route.path.replace('/', '')} // Remove leading slash for child routes

@@ -30,7 +30,9 @@ async def lifespan(app: FastAPI):
     
     # Start Background Workers
     # We use asyncio.create_task to run them in the background
+    print("DEBUG: Creating polling task...")
     polling_task = asyncio.create_task(polling_loop())
+    print("DEBUG: Polling task created.")
     http_polling_task = asyncio.create_task(http_polling_loop())  # HTTP REST API Poller
     forwarder_task = asyncio.create_task(forwarder_loop())
     monitor_task = asyncio.create_task(system_monitor_loop())

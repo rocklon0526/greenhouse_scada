@@ -100,7 +100,12 @@ class DeviceControlService:
         try:
             await client.connect()
             if client.connected:
-                await client.write_single_register(target_address, int(value), slave=1)
+                # Pack float to 2 words (Big Endian)
+                import struct
+                b = struct.pack('>f', float(value))
+                regs = list(struct.unpack('>HH', b))
+                # Removed slave=1 to avoid potential issues with pyModbusTCP
+                await client.write_registers(target_address, regs) 
                 logger.info(f"Modbus control: Wrote {value} to {target_address} for {device_id}")
                 return {"status": "success", "device_id": device_id, "value": value}
             else:

@@ -428,17 +428,27 @@ tags:
     name: process_mix_cmd # 對應 API 寫入的 tag 名稱
     type: float
     unit: cmd
-  - address: 301
+  - address: 302
     connection_name: Main PLC
     name: process_recipe_id
     type: float
     unit: id
+  - address: 304
+    connection_name: Main PLC
+    name: process_target_volume
+    type: float
+    unit: L
+  - address: 306
+    connection_name: Main PLC
+    name: process_mix_status
+    type: float
+    unit: status
   - address: 310
     connection_name: Main PLC
     name: process_transfer_cmd
     type: float
     unit: cmd
-  - address: 311
+  - address: 312
     connection_name: Main PLC
     name: process_transfer_target
     type: float

@@ -52,4 +52,6 @@ export interface MixerState {
   pumpActive: boolean;
   currentRecipeId?: string;
   progress?: number;
+  mixStatus?: number;
+  targetVolume?: number;
 }

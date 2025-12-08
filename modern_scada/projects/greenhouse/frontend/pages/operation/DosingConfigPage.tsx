@@ -4,16 +4,25 @@ import Card from '@core/components/ui/Card';
 import { Settings, Beaker, Scale, Save, ChevronDown } from 'lucide-react';
 import { translations } from '@core/i18n/translations';
 import { Chemical } from '@core/types/farming';
+import { api } from '@core/services/api';
 
 const DosingConfigPage = () => {
     // @ts-ignore
     const { dosingTanks, updateDosingTank, chemicals, language } = useAppStore();
     const t = translations[language as keyof typeof translations];
 
-    const handleSaveAll = () => {
-        // 這裡可以加入儲存到後端的邏輯
-        // 目前僅顯示 alert 作為範例
-        alert("所有設定已儲存！");
+    const handleSaveAll = async () => {
+        try {
+            const result = await api.saveDosingConfig(dosingTanks);
+            if (result.success) {
+                alert("所有設定已儲存！");
+            } else {
+                alert("儲存失敗，請檢查後端日誌。");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("儲存發生錯誤");
+        }
     };
 
     const handleChemicalChange = (tankId: number, chemicalId: string) => {

@@ -195,7 +195,13 @@ const RackTankPanel = () => {
 
         {/* 控制按鈕 (補水) */}
         <button
-          onClick={() => startTransferProcess(selectedRackTankId)}
+          onClick={async () => {
+            try {
+              await startTransferProcess(selectedRackTankId);
+            } catch (e: any) {
+              alert(e.message || "Failed to start transfer");
+            }
+          }}
           disabled={tankData.level >= 4 || tankData.status === 'FILLING'}
           className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold transition-colors shadow-lg shadow-blue-900/20"
         >

@@ -142,7 +142,7 @@ const FormulaPage = () => {
             <div className="mb-4 bg-green-900/20 border border-green-500/50 p-3 rounded-lg flex items-center justify-between animate-pulse">
               <span className="text-green-400 font-bold flex items-center gap-2">
                 <FlaskConical className="animate-bounce" size={18} />
-                Processing Recipe...
+                Processing Recipe... (Status: {mixerData.mixStatus})
               </span>
               <span className="font-mono text-white">{mixerData.progress}%</span>
             </div>

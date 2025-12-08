@@ -54,7 +54,7 @@ const GreenhouseClient = () => {
             <NavButton to="dashboard" icon={Activity} label={t.navControl} />
             <NavButton to="formula" icon={FlaskConical} label={t.navFormula} />
             <NavButton to="logic" icon={Split} label={t.navLogic} />
-            <NavButton to="recipes" icon={FileText} label="Recipes" />
+
             <NavButton to="dosing-config" icon={Settings} label={t.navDosing} />
           </nav>
 

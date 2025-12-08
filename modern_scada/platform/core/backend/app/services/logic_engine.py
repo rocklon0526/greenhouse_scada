@@ -78,7 +78,11 @@ class LogicEngine:
     def load_rules(self):
         try:
             with open(self.rules_path, "r") as f:
-                data = json.load(f)
+                raw_content = f.read()
+                logger.info(f"DEBUG: Raw content: {raw_content}")
+                data = json.loads(raw_content)
+                logger.info(f"DEBUG: Reading rules from {self.rules_path}")
+                logger.info(f"DEBUG: Loaded data: {data}")
                 self.rules = data.get("rules", [])
                 self.global_settings = data.get("globals", self.global_settings)
             logger.info(f"Loaded {len(self.rules)} logic rules from {self.rules_path}.")

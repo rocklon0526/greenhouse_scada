@@ -71,6 +71,8 @@ class StateBuilder:
             "ph": get_val("mixer_ph"),
             "ec": get_val("mixer_ec"),
             "status": "RUNNING" if get_val("process_mix_cmd") == 1.0 else "IDLE",
+            "mixStatus": get_val("process_mix_status"),
+            "targetVolume": get_val("process_target_volume"),
             "valveOpen": bool(get_val("mixer_valve")),
             "pumpActive": bool(get_val("mixer_pump"))
         }

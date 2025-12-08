@@ -100,8 +100,11 @@
                         0
                     ],
                     "type": "cone",
-                    "label": "Hopper 1",
-                    "tag": "dosing_1_level"
+                    "label": "Tank 1",
+                    "tag": "dosing_1_level",
+                    "chemicalId": "chem_1",
+                    "capacity": 1000,
+                    "level": 80
                 },
                 {
                     "id": "hopper_02",
@@ -111,8 +114,11 @@
                         0
                     ],
                     "type": "cone",
-                    "label": "Hopper 2",
-                    "tag": "dosing_2_level"
+                    "label": "Tank 2",
+                    "tag": "dosing_2_level",
+                    "chemicalId": "chem_2",
+                    "capacity": 1000,
+                    "level": 80
                 },
                 {
                     "id": "hopper_03",
@@ -122,8 +128,11 @@
                         0
                     ],
                     "type": "cone",
-                    "label": "Hopper 3",
-                    "tag": "dosing_3_level"
+                    "label": "Tank 3",
+                    "tag": "dosing_3_level",
+                    "chemicalId": "chem_3",
+                    "capacity": 1000,
+                    "level": 80
                 },
                 {
                     "id": "hopper_04",
@@ -133,8 +142,11 @@
                         0
                     ],
                     "type": "cone",
-                    "label": "Hopper 4",
-                    "tag": "dosing_4_level"
+                    "label": "Tank 4",
+                    "tag": "dosing_4_level",
+                    "chemicalId": "chem_4",
+                    "capacity": 1000,
+                    "level": 80
                 },
                 {
                     "id": "hopper_05",
@@ -144,8 +156,11 @@
                         0
                     ],
                     "type": "cone",
-                    "label": "Hopper 5",
-                    "tag": "dosing_5_level"
+                    "label": "Tank 5",
+                    "tag": "dosing_5_level",
+                    "chemicalId": "chem_5",
+                    "capacity": 1000,
+                    "level": 80
                 },
                 {
                     "id": "hopper_06",
@@ -155,8 +170,11 @@
                         0
                     ],
                     "type": "cone",
-                    "label": "Hopper 6",
-                    "tag": "dosing_6_level"
+                    "label": "Tank 6",
+                    "tag": "dosing_6_level",
+                    "chemicalId": "chem_6",
+                    "capacity": 1000,
+                    "level": 80
                 }
             ],
             "mixing_tank": {

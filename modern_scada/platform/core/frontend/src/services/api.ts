@@ -19,8 +19,11 @@ const handleResponse = async (response: Response) => {
     window.location.href = '/login';
     throw new Error('Unauthorized');
   }
-  if (!response.ok) throw new Error('Network error');
-  return response.json();
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Network error');
+  }
+  return data;
 };
 
 export const api = {
@@ -70,12 +73,12 @@ export const api = {
     }
   },
 
-  async startMixing(recipe: Recipe) {
+  async startMixing(recipe: Recipe, targetVolume: number) {
     try {
       const response = await fetch(`${APP_CONFIG.API_URL}/process/mix`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ recipeId: recipe.id, params: recipe.ingredients })
+        body: JSON.stringify({ recipeId: recipe.id, targetVolume, params: recipe.ingredients })
       });
       await handleResponse(response);
       return { success: true };
@@ -94,9 +97,9 @@ export const api = {
       });
       await handleResponse(response);
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Transfer Start Error:", error);
-      return { success: false };
+      return { success: false, error: error.message };
     }
   },
 
@@ -113,11 +116,26 @@ export const api = {
       console.error("Rules Update Error:", error);
       return { success: false };
     }
+  },
+
+  async saveDosingConfig(tanks: any[]) {
+    try {
+      const response = await fetch(`${APP_CONFIG.API_URL}/config/dosing`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(tanks)
+      });
+      await handleResponse(response);
+      return { success: true };
+    } catch (error) {
+      console.error("Dosing Config Save Error:", error);
+      return { success: false };
+    }
   }
 };
 
 export const mapApiDataToState = (data: any, layoutConfig: LayoutConfig) => {
-  console.log("Using patched mapApiDataToState", layoutConfig);
+  // console.log("Using patched mapApiDataToState", layoutConfig);
   const now = new Date();
   const newEntry = {
     time: now.toLocaleTimeString(),
@@ -137,6 +155,7 @@ export const mapApiDataToState = (data: any, layoutConfig: LayoutConfig) => {
 
   const allSensors = [...(layoutConfig.sensorPoints || []), ...extractFromZones('sensors')];
   const allRacks = [...(layoutConfig.racks || []), ...extractFromZones('racks')];
+  const allHoppers = extractFromZones('hoppers');
 
   const mergedSensors = data.sensors.map((apiSensor: any) => {
     const configSensor = allSensors.find((p: any) => p.id === apiSensor.id);
@@ -151,7 +170,26 @@ export const mapApiDataToState = (data: any, layoutConfig: LayoutConfig) => {
     devices: data.devices,
     weatherStation: data.weather,
     history: newEntry,
-    mixer: data.mixer,
+    mixer: {
+      ...data.mixer,
+      // Ensure these fields are mapped if backend provides them, otherwise default
+      mixStatus: data.mixer?.mixStatus || 0,
+      targetVolume: data.mixer?.targetVolume || 0
+    },
+    dosingTanks: allHoppers.map((hopper: any, index: number) => {
+      // Map hopper_01 -> ID 1
+      const id = parseInt(hopper.id.replace('hopper_', '')) || (index + 1);
+      return {
+        id: id,
+        name: hopper.label || `Tank ${id}`,
+        capacity: hopper.capacity || 1000,
+        currentLevel: hopper.level || 85, // Use 'level' from config as initial/current
+        ph: 6.0, // Default or from tag if available
+        ec: 1.2,
+        chemicalType: hopper.chemicalId ? 'Linked' : 'Empty', // Simplified, needs chemical list lookup
+        chemicalId: hopper.chemicalId
+      };
+    }),
     rackTanks: (() => {
       const mappedTanks: any = {};
       const backendKeys = Object.keys(data.rackTanks || {});

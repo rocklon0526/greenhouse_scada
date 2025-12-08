@@ -104,45 +104,45 @@ async def poll_single_plc(connection_config, processor):
         client.close()
 
 async def polling_loop():
-    logger.info("Starting Polling Worker")
-    processor = EventProcessor()
-    
-    from app.services.metrics_service import MetricsService
-    metrics = MetricsService.get()
-
-    while True:
-        try:
-            connections = settings.app_config.plc.connections
-            if not connections:
-                logger.warning("No PLC connections configured")
-                await asyncio.sleep(5)
-                continue
-
-            start_time = time.time()
-            tasks = [poll_single_plc(conn, processor) for conn in connections]
-            await asyncio.gather(*tasks)
-            duration = time.time() - start_time
-            
-            # Record Metrics
-            for conn in connections:
-                # We don't have exact count per connection here easily without refactoring poll_single_plc to return count
-                # For now, just record duration for the "main" connection or all combined?
-                # Let's just record duration for "all" or iterate if we want per-connection
-                metrics.polling_duration.labels(connection=conn.name).observe(duration)
-                # Increment read total - assuming we read something. 
-                # Ideally poll_single_plc returns count.
-                # Let's update poll_single_plc to return count.
-            
-            # Broadcast updates after polling all PLCs
-            system_state = StateBuilder.build_system_state()
-            await manager.broadcast({"type": "update", "data": system_state})
-                
-        except Exception as e:
-            logger.error(f"Global polling loop error: {e}")
+    print("DEBUG: polling_loop started!")
+    try:
+        logger.info("Starting Polling Worker")
+        processor = EventProcessor()
         
-        # Use the poll interval from the first connection or default
-        interval = 1.0
-        if settings.app_config.plc.connections:
-            interval = settings.app_config.plc.connections[0].poll_interval
+        from app.services.metrics_service import MetricsService
+        metrics = MetricsService.get()
+
+        while True:
+            try:
+                connections = settings.app_config.plc.connections
+                if not connections:
+                    logger.warning("No PLC connections configured")
+                    await asyncio.sleep(5)
+                    continue
+
+                start_time = time.time()
+                tasks = [poll_single_plc(conn, processor) for conn in connections]
+                await asyncio.gather(*tasks)
+                duration = time.time() - start_time
+                
+                # Record Metrics
+                for conn in connections:
+                    metrics.polling_duration.labels(connection=conn.name).observe(duration)
+                
+                # Broadcast updates after polling all PLCs
+                system_state = StateBuilder.build_system_state()
+                await manager.broadcast({"type": "update", "data": system_state})
+                    
+            except Exception as e:
+                logger.error(f"Global polling loop error: {e}")
+                print(f"DEBUG: Global polling loop error: {e}")
             
-        await asyncio.sleep(interval)
+            # Use the poll interval from the first connection or default
+            interval = 1.0
+            if settings.app_config.plc.connections:
+                interval = settings.app_config.plc.connections[0].poll_interval
+                
+            await asyncio.sleep(interval)
+    except Exception as e:
+        print(f"DEBUG: CRITICAL polling_loop startup error: {e}")
+        logger.error(f"CRITICAL polling_loop startup error: {e}")
