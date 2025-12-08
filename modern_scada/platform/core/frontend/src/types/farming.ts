@@ -20,7 +20,7 @@ export interface DosingTank {
 export interface RackNutrientTank {
   rackId: string;
   position: [number, number, number];
-  level: 0 | 1 | 2 | 3 | 4; // 0=Empty, 1=L1(Low), 4=L4(Full)
+  level: number; // 0=Empty, 4=Full (Continuous value)
   ph: number;
   ec: number;
   valveOpen: boolean;

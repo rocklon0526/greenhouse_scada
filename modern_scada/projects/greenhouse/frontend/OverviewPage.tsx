@@ -329,15 +329,16 @@ const OverviewPage = () => {
     // ==========================================
     // 這裡我們將原本分散的 WaterWall 整合進 Infrastructure
 
+    // B. 風扇 (Fans) [修正]
     if (growing?.fans) {
       growing.fans.forEach((fan: any) => {
-        // 負壓風扇
         objects.push({
           id: fan.id,
           type: 'FanWidget',
           position: fan.position,
+          rotation: fan.rotation, // <--- 關鍵！補上這一行，讓 layout.json 的旋轉生效
           props: {
-            config: layoutConfig.infrastructure
+            // config: layoutConfig.infrastructure // 這一行其實不需要了，因為我們改用直接傳 id
           }
         });
       });
@@ -362,14 +363,12 @@ const OverviewPage = () => {
       growing.water_walls.forEach((ww: any) => {
         objects.push({
           id: ww.id,
-          type: 'box', // Use our new BoxShape
+          type: 'WaterWallWidget',
           position: ww.position || [0, 0, 0],
+          rotation: ww.rotation,
           props: {
-            args: [2, 8, 15], // Default size for water wall
-            color: '#3b82f6',
-            transparent: true,
-            opacity: 0.6,
-            label: ww.id
+            args: ww.size || [2, 8, 15],
+            color: '#3b82f6'
           }
         });
       });
@@ -406,7 +405,7 @@ const OverviewPage = () => {
       {/* UI Overlay Layer */}
       <div className="absolute inset-0 z-50 pointer-events-none">
         <div className="pointer-events-auto">
-          {/* <WeatherPanel /> */}
+          <WeatherPanel />
           <SensorDetailPanel />
           <DosingTankPanel />
           <MixerPanel />

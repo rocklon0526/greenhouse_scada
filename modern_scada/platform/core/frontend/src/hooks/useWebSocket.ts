@@ -5,24 +5,27 @@ import { LayoutConfig } from '../configs/layoutConfig';
 
 export const useWebSocket = (layoutConfig: LayoutConfig) => {
     const wsRef = useRef<WebSocket | null>(null);
+    // 新增：用來追蹤組件是否已經卸載或依賴已改變
+    const isCleanedUp = useRef(false);
+
     const updateFromWebSocket = useAppStore((state: any) => state.updateFromWebSocket);
-    const connectionStatus = useAppStore((state: any) => state.connectionStatus);
 
     useEffect(() => {
         if (APP_CONFIG.USE_MOCK) return;
 
-        // Use relative path for WS to go through Nginx
-        // If VITE_API_URL is http://localhost/api, then WS should be ws://localhost/ws
-        // But since we are proxying, we can just use relative path if on same origin, or construct it.
-        // Assuming Nginx proxies /ws to backend /ws
+        // 重置清理標記
+        isCleanedUp.current = false;
 
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.host; // localhost:80 (Nginx)
+        const host = window.location.host;
         const wsUrl = `${protocol}//${host}/ws`;
 
         console.log(`Connecting to WebSocket: ${wsUrl}`);
 
         const connect = () => {
+            // 如果已經清理過，就不要再建立新連線 (防止幽靈連線)
+            if (isCleanedUp.current) return;
+
             const ws = new WebSocket(wsUrl);
             wsRef.current = ws;
 
@@ -42,8 +45,12 @@ export const useWebSocket = (layoutConfig: LayoutConfig) => {
             };
 
             ws.onclose = () => {
-                console.log('WebSocket Disconnected. Retrying in 3s...');
-                setTimeout(connect, 3000);
+                console.log('WebSocket Disconnected');
+                // 修正：只有在「非主動清理」的情況下才重連
+                if (!isCleanedUp.current) {
+                    console.log('Retrying in 3s...');
+                    setTimeout(connect, 3000);
+                }
             };
 
             ws.onerror = (error) => {
@@ -55,7 +62,11 @@ export const useWebSocket = (layoutConfig: LayoutConfig) => {
         connect();
 
         return () => {
+            // 標記為已清理，阻止任何 pending 的重連或新連線
+            isCleanedUp.current = true;
             if (wsRef.current) {
+                // 關閉時移除 onclose 處理器，避免觸發重連邏輯 (雙重保險)
+                wsRef.current.onclose = null;
                 wsRef.current.close();
             }
         };

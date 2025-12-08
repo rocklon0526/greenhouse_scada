@@ -15,6 +15,7 @@ import { WaterPipeSystem3D } from '../../core/frontend/src/components/3d/WaterPi
 import { DosingSystem3D } from '../../core/frontend/src/components/3d/DosingSystem3D';
 import { RackNutrientTank3D } from '../../core/frontend/src/components/3d/RackNutrientTank3D';
 import { BoxShape } from '../../core/frontend/src/components/3d/BoxShape';
+import { WaterWall3D } from '../../core/frontend/src/components/3d/WaterWall3D';
 
 type ComponentRegistryType = Record<string, React.ComponentType<any>>;
 
@@ -29,18 +30,19 @@ export const ComponentRegistry: ComponentRegistryType = {
     "FanWidget": Fan3D,
     "SensorWidget": SensorGroup,
     "box": BoxShape,
-    "BoxWidget": BoxShape
+    "BoxWidget": BoxShape,
+    "WaterWallWidget": WaterWall3D
 };
 
 export const getComponent = (type: string) => {
     const component = ComponentRegistry[type];
 
     // CRITICAL: Debugging Log
-    if (component) {
-        console.log(`[3D Registry] Successfully found component for type: '${type}'`);
-    } else {
-        console.error(`[3D Registry] FAILED to find component for type: '${type}'. Available keys:`, Object.keys(ComponentRegistry));
-    }
+    // if (component) {
+    //     console.log(`[3D Registry] Successfully found component for type: '${type}'`);
+    // } else {
+    //     console.error(`[3D Registry] FAILED to find component for type: '${type}'. Available keys:`, Object.keys(ComponentRegistry));
+    // }
 
     return component || null;
 };

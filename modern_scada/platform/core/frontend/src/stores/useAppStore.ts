@@ -32,6 +32,7 @@ interface ExtendedStore extends StoreState {
 
   toggleMixerValve: () => void;
   toggleMixerPump: () => void;
+  toggleRackTankValve: (rackId: string) => void;
 
   startMixingProcess: (recipeId: string) => Promise<void>;
   startTransferProcess: (targetRackId: string) => Promise<void>;
@@ -353,15 +354,15 @@ const store = create<ExtendedStore>((set: any, get: any) => {
           const tank = newRackTanks[key];
           if (tank.status === 'FILLING') {
             if (tank.level < 4) {
-              tank.level += 1;
+              tank.level = Math.min(4, tank.level + 0.05); // Smooth fill
             } else {
               tank.status = 'IDLE';
               tank.valveOpen = false;
             }
           } else {
             // Consume nutrient slowly
-            if (Math.random() > 0.8 && tank.level > 1) {
-              tank.level -= 1;
+            if (Math.random() > 0.8 && tank.level > 0) {
+              tank.level = Math.max(0, tank.level - 0.05); // Smooth drain
             }
           }
         });
@@ -465,6 +466,16 @@ const store = create<ExtendedStore>((set: any, get: any) => {
       chemicals: state.chemicals.map(c => c.id === id ? { ...c, ...data } : c)
     })),
     deleteChemical: (id: string) => set((state: ExtendedStore) => ({ chemicals: state.chemicals.filter(c => c.id !== id) })),
+    toggleRackTankValve: (rackId: string) => set((state: ExtendedStore) => {
+      const tank = state.rackTanks[rackId];
+      if (!tank) return {};
+      return {
+        rackTanks: {
+          ...state.rackTanks,
+          [rackId]: { ...tank, valveOpen: !tank.valveOpen }
+        }
+      };
+    }),
   };
 });
 

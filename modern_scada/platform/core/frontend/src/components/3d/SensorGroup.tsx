@@ -1,17 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Html } from '@react-three/drei';
 import { useAppStore } from '../../stores/useAppStore';
 import { SensorData } from '../../types/sensors';
 import { ThreeEvent } from '@react-three/fiber';
+// [修正 1] 改從 zustand/react/shallow 引入 useShallow Hook
+import { useShallow } from 'zustand/react/shallow';
 
-const SensorGroup: React.FC<{ data: SensorData, id?: string, values?: any }> = ({ data: initialData, id }) => {
-  // @ts-ignore
-  const { selectedSensorId, selectSensor, sensors } = useAppStore();
+const SensorGroup: React.FC<{ data: SensorData, id?: string }> = ({ data: initialData, id }) => {
+  const selectSensor = useAppStore((state) => state.selectSensor);
+  const selectedSensorId = useAppStore((state) => state.selectedSensorId);
+
+  // [修正 2] 使用 useShallow 包裹 Selector，並只挑選需要的欄位
+  // 這樣即使 sensors 陣列中的 details 物件參照改變，只要這三個數值沒變，就不會觸發渲染
+  const liveData = useAppStore(
+    useShallow((state) => {
+      const s = state.sensors.find((s: any) => s.id === id);
+      if (!s) return null;
+      return {
+        avgTemp: s.avgTemp,
+        avgHum: s.avgHum,
+        avgCo2: s.avgCo2,
+        status: s.status
+      };
+    })
+  );
+
   const [hovered, setHovered] = useState(false);
 
-  // 從 Store 獲取即時數據
-  const storeSensorData = sensors?.find((s: any) => s.id === id);
-  const data = { ...initialData, ...storeSensorData };
+  // 合併靜態設定與即時數據
+  const data = useMemo(() => ({
+    ...initialData,
+    ...(liveData || {})
+  }), [initialData, liveData]);
 
   if (!data) return null;
 
@@ -24,10 +44,7 @@ const SensorGroup: React.FC<{ data: SensorData, id?: string, values?: any }> = (
     selectSensor(isSelected ? null : data.id);
   };
 
-  // 修正：事件傳遞邏輯
   const handleHtmlClick = (e: React.MouseEvent) => {
-    // 這裡不需要 stopPropagation，因為我們已經在 mesh 層處理了點擊
-    // 只需要處理 UI 內部的邏輯即可
     if (!isSelected) selectSensor(data.id);
     else selectSensor(null);
   };
@@ -36,7 +53,6 @@ const SensorGroup: React.FC<{ data: SensorData, id?: string, values?: any }> = (
 
   return (
     <group position={data.position}>
-      {/* 支架與感測器球體 (保持不變) */}
       <mesh position={[0, 2, 0]}>
         <cylinderGeometry args={[0.02, 0.02, 4]} />
         <meshBasicMaterial color="#94a3b8" />
@@ -55,23 +71,16 @@ const SensorGroup: React.FC<{ data: SensorData, id?: string, values?: any }> = (
         />
       </mesh>
 
-      {/* [修正重點] 回歸 2D 模式，使用 CSS 絕對定位解決跳動與大小問題 */}
       <Html
         position={[0, 2.5, 0]}
-        // 1. 移除 transform, sprite, distanceFactor (解決太小與抖動)
-        // 2. 加入 occlude="raycast" 讓標籤在被物體遮擋時自動隱藏 (可選)
-        // occlude="raycast" 
         style={{
           pointerEvents: 'none',
           userSelect: 'none',
-          // 確保容器本身不佔空間，作為定位錨點
           width: 0,
-          height: 0,
-          overflow: 'visible'
+          height: 0
         }}
         zIndexRange={[100, 0]}
       >
-        {/* 使用 CSS transform 進行精確置中，這比 drei 的 center 屬性更穩定 */}
         <div
           className="absolute top-0 left-0 flex flex-col items-center justify-end -translate-x-1/2 -translate-y-1/2"
           style={{ pointerEvents: 'auto', cursor: 'pointer' }}
@@ -79,7 +88,6 @@ const SensorGroup: React.FC<{ data: SensorData, id?: string, values?: any }> = (
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
         >
-          {/* 詳細資訊卡片 (彈出層) */}
           <div
             className={`absolute bottom-full mb-2 transition-all duration-300 ease-out origin-bottom
               ${isExpanded ? 'scale-100 opacity-100 translate-y-0' : 'scale-50 opacity-0 translate-y-4 pointer-events-none'}`}
@@ -93,21 +101,19 @@ const SensorGroup: React.FC<{ data: SensorData, id?: string, values?: any }> = (
               <div className="p-3 space-y-2">
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-400">Humidity</span>
-                  <span className="font-mono font-bold text-blue-200">{fmt(data.avgHum)}%</span>
+                  <span className="font-mono font-bold text-blue-200 w-12 text-right">{fmt(data.avgHum)}%</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-400">CO2</span>
-                  <span className="font-mono font-bold text-gray-200">{fmt(data.avgCo2)}</span>
+                  <span className="font-mono font-bold text-gray-200 w-12 text-right">{fmt(data.avgCo2)}</span>
                 </div>
               </div>
             </div>
-            {/* 小箭頭 */}
             <div className="w-2 h-2 bg-slate-500/50 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2"></div>
           </div>
 
-          {/* 常駐小標籤 (膠囊狀) */}
           <div className={`
-            flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-lg backdrop-blur-md transition-all duration-300 min-w-[80px] justify-between
+            flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-lg backdrop-blur-md transition-all duration-300 min-w-[90px] justify-between
             ${isAlarm ? 'bg-red-500/90 border-red-300 text-white animate-pulse' :
               isExpanded ? 'bg-blue-600 border-blue-400 text-white ring-2 ring-blue-500/30' :
                 'bg-slate-800/80 border-slate-600 text-slate-300 hover:bg-slate-700'}
@@ -115,7 +121,7 @@ const SensorGroup: React.FC<{ data: SensorData, id?: string, values?: any }> = (
             <div className="flex flex-col leading-none">
               <span className="text-[8px] font-bold opacity-70 uppercase tracking-wider mb-0.5">Temp</span>
               <div className="flex items-baseline">
-                <span className="text-sm font-mono font-bold">{fmt(data.avgTemp)}</span>
+                <span className="text-sm font-mono font-bold w-10 text-right">{fmt(data.avgTemp)}</span>
                 <span className="text-[10px] ml-0.5">°C</span>
               </div>
             </div>

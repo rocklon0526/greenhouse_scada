@@ -248,15 +248,15 @@
                 {
                     "id": "fan_01",
                     "position": [
-                        -30,
-                        5,
-                        0
+                        15,
+                        2,
+                        10
                     ],
                     "type": "cylinder",
                     "label": "Fan 1",
                     "rotation": [
                         0,
-                        0,
+                        1.57,
                         1.57
                     ],
                     "tag": "fan_1_status"
@@ -264,15 +264,15 @@
                 {
                     "id": "fan_02",
                     "position": [
-                        -30,
-                        5,
-                        20
+                        -2,
+                        2,
+                        10
                     ],
                     "type": "cylinder",
                     "label": "Fan 2",
                     "rotation": [
                         0,
-                        0,
+                        1.57,
                         1.57
                     ],
                     "tag": "fan_2_status"
@@ -282,11 +282,21 @@
                 {
                     "id": "ww_01",
                     "position": [
-                        30,
-                        5,
+                        50,
+                        70,
                         0
                     ],
+                    "size": [
+                        2,
+                        8,
+                        15
+                    ],
                     "type": "box",
+                    "rotation": [
+                        0,
+                        1.57,
+                        0
+                    ],
                     "label": "Water Wall 1",
                     "tag": "ww_1_status"
                 },
@@ -294,10 +304,20 @@
                     "id": "ww_02",
                     "position": [
                         30,
-                        5,
-                        20
+                        70,
+                        0
+                    ],
+                    "size": [
+                        2,
+                        8,
+                        15
                     ],
                     "type": "box",
+                    "rotation": [
+                        0,
+                        1.57,
+                        0
+                    ],
                     "label": "Water Wall 2",
                     "tag": "ww_2_status"
                 }
